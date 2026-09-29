@@ -1,0 +1,60 @@
+html,
+body,
+#orb-root {
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.orb {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 26%, #2f3856 0%, #171b26 62%, #12141c 100%);
+  border: 1px solid #3b4463;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.orb:hover {
+  transform: scale(1.06);
+  border-color: #6c7cff;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    0 0 0 3px rgba(108, 124, 255, 0.22);
+}
+
+.orb:active,
+.orb.dragging {
+  cursor: grabbing;
+  transform: scale(0.96);
+}
+
+.orb svg {
+  width: 58%;
+  height: 58%;
+  pointer-events: none;
+}
+
+.orb .node {
+  fill: #e8eaf2;
+}
+
+.orb .node.dim {
+  fill: #8b93ad;
+}
+
+.orb .link {
+  stroke: #6c7cff;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+}

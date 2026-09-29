@@ -3,7 +3,7 @@
 **ThoughtTree** — a local-first Thinking Tracker.
 *Capture freely. Organize deliberately. Focus relentlessly.*
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 ---
 
@@ -11,8 +11,12 @@ Last updated: 2026-09-28
 
 Phase 1–5 of the brief are implemented and verified, and Phase 6 (reliability)
 and Phase 7 (polish) are partly done. The MVP definition of done (brief §24) is
-met. The next milestone is closing the P1 list in `TODO.md`, starting with
-capture context and persisted undo history.
+met.
+
+Phase 8 closed the six gaps that sat *around* the core loop — retrieval,
+recall, research links, capture provenance, and data safety. The next
+milestone is the one remaining engineering item, a real-browser E2E harness,
+plus the P1 list in `TODO.md`.
 
 ---
 
@@ -59,10 +63,12 @@ position, note, conclusion, inbox, collapsed, source_app, source_title }`
 - `status`: `open | later | done | archived`
 - `inbox`: true until the thought is filed into the tree
 
-`Edge { id, from_node, to_node, relation_type, reason, created_at }`
-— `from_node` is the parent, `to_node` the child. A node has at most one
-incoming edge. `relation_type` is one of `decompose | answer | support |
-challenge | depends_on`.
+`Edge { id, from_node, to_node, relation_type, reason, created_at, kind }`
+— `kind` is `parent | link`. A **parent** edge puts `to_node` under `from_node`;
+a node has at most one incoming parent edge. A **link** is a cross-branch note
+that two questions are related, and a node may have any number of them.
+`relation_type` is one of `decompose | answer | support | challenge |
+depends_on`.
 
 ### The write path
 
@@ -132,13 +138,32 @@ window never disagree.
 - Layout reads Inbox → Tree → Detail, with the tree given the widest column.
 - `E` opens "Why here?" from the keyboard.
 
+**Phase 8 — around the loop**
+- **Search** (`Ctrl+P`) over questions, notes, conclusions and relation
+  reasons; each hit carries its tree path and jumps to the question, expanding
+  whatever ancestors were collapsed.
+- **Review** — a small, deliberately uncounted selection of older captures,
+  notes without a conclusion, unexplained relations and unfiled items. The
+  pick is a stable hash of `seed + node id`, so appending a question does not
+  reshuffle it.
+- **Conclusions** — every question you have written an answer for, with the
+  path it came from.
+- **Capture context** — a background sampler records the last foreground window
+  that is *not* ours, so every capture knows which app it came from.
+- **Import + restore** — a JSON export can be imported back (undoable), and a
+  rotating `.db` backup can be restored from the UI.
+- **Cross-branch relations** — an edge is either a `parent` edge or a `link`;
+  a question can point at any other question with a type and a reason, and
+  links may form cycles the tree cannot.
+
 **Quality**
-- 67 front end tests (domain + store, including the brief's integration cases:
+- 124 front end tests (domain + store, including the brief's integration cases:
   Capture → Inbox, Inbox → Tree, Tree drag → Relation, Relation → Why Here,
   Important → Focus, Done → hide/show, plus write-failure rollback,
   cross-window sync, inbox/tree separation and language switching).
-- 5 Rust tests over the storage layer (create, upsert, cascade delete, one edge
-  per child, settings).
+- 17 Rust tests over the storage layer (create, upsert, cascade delete, one
+  parent edge per child, settings, the v1→v2 edge migration, backup rotation,
+  restore, import).
 
 ### Bugs found by driving the real app (all fixed)
 
@@ -172,10 +197,8 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
    practice. Root cause not identified; it does not reproduce on demand.
 2. **Undo is per-window and in memory.** A capture made from the orb cannot be
    undone from the main window, and nothing is undoable after a restart.
-3. **Capture context is not collected.** `source_app` / `source_title` are always
-   null (schema and plumbing are in place).
-4. **No tree virtualisation.** Rendering cost grows linearly with visible rows.
-5. **Drag does not auto-scroll** when a drop target is off-screen.
+3. **No tree virtualisation.** Rendering cost grows linearly with visible rows.
+4. **Drag does not auto-scroll** when a drop target is off-screen.
 6. The orb's idle "peek" and the freeform positions are only verified on a single
    monitor.
 7. **The orb is created before the database is managed** (it has to be, so the
@@ -206,13 +229,17 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
 
 ## Next
 
-1. Capture context (foreground app + window title) — small, self-contained, and
-   the last piece of §4.
+1. **A real-browser E2E harness** (Playwright against the dev server, with the
+   Tauri API stubbed by `MemoryPersistence`). Every bug in the table above was
+   invisible to the unit suite, because the unit suite exercises the store and
+   the bugs lived in the seam between the store, the DOM, the OS shell and the
+   display. This is the highest-leverage remaining item.
 2. Decide the fate of undo history: persist it, or accept and document the
    limitation.
 3. Multi-select drag in the tree.
 4. Auto-scroll during drag.
 5. Tree virtualisation.
+6. Markdown export — getting a conclusion *out* into writing.
 
 ---
 
@@ -240,7 +267,7 @@ See `DECISIONS.md` for the full log with reasoning. The load-bearing ones:
 | 2. Local persistence | `%APPDATA%\app.thoughttree.desktop\thoughttree.db` |
 | 3. The orb runs | 64×64 circle, always on top, snaps to the screen edge |
 | 4. Orb → Quick Capture | click the orb |
-| 5. Global shortcut → Quick Capture | `Alt+Space` from any app |
+| 5. Global shortcut → Quick Capture | `Ctrl+Shift+Space` from any app |
 | 6. Capture lands in the Inbox | bottom capture bar or the orb |
 | 7. Inbox → Tree | drag an item onto a tree row |
 | 8. Multi-level tree | `Tab` to nest; keep going |

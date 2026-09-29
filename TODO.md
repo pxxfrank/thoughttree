@@ -14,11 +14,8 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
   the Vite dev server, with the Tauri API stubbed by `MemoryPersistence`
   (gated behind `import.meta.env.DEV`). This is the only reliable way to
   regression-test drag-and-drop, the relation prompt and the capture bar —
-  all three of which shipped broken despite a green unit-test suite.
-- [ ] **Capture context** — record the foreground application and window title
-  with every capture (§4.4). Columns `source_app` / `source_title` exist and are
-  wired end to end; `capture_source_context` currently returns nulls. Needs a
-  `GetForegroundWindow` + `GetWindowTextW` call in Rust.
+  all three of which shipped broken despite a green unit-test suite, and it is
+  the only item in this list that would have caught the bugs found by hand.
 - [ ] **Persist undo history** — undo currently lives in memory and is per
   window, so it is lost on restart and does not cover a capture made from the
   orb. Decide whether that is acceptable or move history into SQLite.
@@ -28,20 +25,32 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 - [ ] **Auto-scroll while dragging** near the top/bottom of a panel.
 - [ ] **Large-tree performance** — the tree renders every visible row. Fine at
   hundreds of nodes; needs virtualisation before thousands.
-- [ ] **Import JSON** — we export, but cannot restore an export.
 
 ## P2 — Deferred by design
 
-- [ ] Markdown export.
-- [ ] Search / jump-to-question (`findByText` exists in the domain layer, unused).
+- [ ] Markdown export — getting a conclusion out into writing or sharing.
 - [ ] Collapse-all / expand-all.
 - [ ] Per-node "open questions" count on the tree row.
 - [ ] Drag a node from the tree back into the Inbox.
 - [ ] Settings: choose the orb's default edge, disable auto-peek.
-- [ ] Light theme.
-- [ ] Keyboard: multi-select with Shift+Arrow, range delete.
 - [ ] Remember window size/position for the main window.
 - [ ] Show the reason on the tree row as a tooltip.
+- [ ] Keyboard: multi-select with Shift+Arrow, range delete.
+- [ ] A cross-branch link currently shows as a `⇄` badge and in the detail
+  panel; consider a hover preview that names the linked questions.
+
+## Done — Phase 8 (the six gaps around the core loop)
+
+- [x] **Search** (`Ctrl+P`) over questions, notes, conclusions and reasons.
+- [x] **Review** — an uncounted look back at older captures, unconcluded notes,
+  unexplained relations and unfiled items.
+- [x] **Conclusions** view.
+- [x] **Capture context** — the foreground app and window title are recorded.
+- [x] **Import JSON** (undoable) and **restore from a rotating backup**.
+- [x] **Cross-branch relations** — a question can link to any other question.
+- [x] Light theme + system theme.
+- [x] Fixed: the rotating backup now checkpoints the WAL before copying, so a
+  backup can no longer be missing the previous session.
 
 ## Explicitly out of scope (see §17 of the brief)
 

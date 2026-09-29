@@ -164,7 +164,9 @@ textarea {
 
 .app {
   display: grid;
-  grid-template-rows: 44px 1fr auto;
+  /* auto, not 44px: the header wraps onto a second line in a narrow window
+     rather than pushing its buttons out of reach. */
+  grid-template-rows: auto 1fr auto;
   height: 100%;
   min-height: 0;
 }
@@ -172,8 +174,10 @@ textarea {
 .header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 6px 12px;
+  min-height: 44px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;

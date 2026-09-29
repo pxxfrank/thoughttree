@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { indexChildren } from '../domain/tree'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
-import { setAppTheme } from '../storage/desktop-actions'
+import { setAppTheme, fitMainToScreen } from '../storage/desktop-actions'
 import { applyTheme, resolveTheme } from '../theme/theme'
 import { CaptureBar } from './CaptureBar'
 import { DetailPanel } from './DetailPanel'
@@ -38,6 +38,18 @@ export function App() {
     query.addEventListener('change', onChange)
     return () => query.removeEventListener('change', onChange)
   }, [state.theme])
+
+  // A window can end up larger than the display it is on, which pushes the
+  // header's right-hand controls off the screen entirely. The front end is the
+  // only place that knows the real viewport in the layout's own coordinate
+  // space, so it measures and asks the shell to shrink itself.
+  useEffect(() => {
+    const dpr = window.devicePixelRatio || 1
+    void fitMainToScreen(
+      Math.round(window.innerWidth * dpr),
+      Math.round(window.innerHeight * dpr),
+    )
+  }, [])
 
   /**
    * Translates a raw pointer target into "which parent, which slot". The index

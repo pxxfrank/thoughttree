@@ -131,6 +131,7 @@ pub fn run() {
             windows::orb_peek_window,
             windows::orb_expand_window,
             windows::set_app_theme,
+            windows::fit_main_to_screen,
             windows::capture_source_context,
             windows::set_shortcut,
         ])

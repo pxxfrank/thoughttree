@@ -209,6 +209,17 @@ describe('undo / redo', () => {
     expect(store.getState().locale).toBe('zh')
     expect(persistence.settings['locale']).toBe('zh')
   })
+
+  it('switches theme and keeps it in settings', async () => {
+    const { store, persistence } = await ready()
+    expect(store.getState().theme).toBe('system')
+    await store.setTheme('light')
+    expect(store.getState().theme).toBe('light')
+    expect(persistence.settings['theme']).toBe('light')
+    await store.setTheme('dark')
+    expect(store.getState().theme).toBe('dark')
+    expect(persistence.settings['theme']).toBe('dark')
+  })
 })
 
 describe('inbox is separate from the tree', () => {

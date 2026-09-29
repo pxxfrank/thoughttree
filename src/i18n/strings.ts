@@ -32,6 +32,7 @@ const en: Dict = {
   'action.undo.none': 'Nothing to undo',
   'action.redo.none': 'Nothing to redo',
   'action.keys.title': 'Keyboard shortcuts & settings',
+  'action.theme.title': 'Theme: {name} — click to change',
   'action.quit.title': 'Quit ThoughtTree',
 
   'panel.tree': 'Research Tree',
@@ -205,6 +206,7 @@ const zh: Dict = {
   'action.undo.none': '没有可撤销的操作',
   'action.redo.none': '没有可重做的操作',
   'action.keys.title': '快捷键与设置',
+  'action.theme.title': '主题：{name} — 点击切换',
   'action.quit.title': '退出 ThoughtTree',
 
   'panel.tree': '研究树',

@@ -57,7 +57,7 @@ pub fn create_orb_window(app: &App) -> tauri::Result<()> {
 pub fn create_main_window(app: &App) -> tauri::Result<()> {
     WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
         .title("ThoughtTree")
-        .inner_size(1200.0, 780.0)
+        .inner_size(1100.0, 720.0)
         .min_inner_size(880.0, 520.0)
         .center()
         .build()?;
@@ -445,6 +445,42 @@ pub fn orb_peek_window(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn orb_expand_window(app: AppHandle) -> Result<(), String> {
     orb_expand(&app)
+}
+
+/// Clamp the main window to the monitor using the *front end's* measurement.
+///
+/// Rust's `outer_size()` disagrees with the window's real painted extent on a
+/// high-DPI remote session, so the previous Rust-side clamp could not be
+/// trusted. The front end knows `innerWidth * devicePixelRatio`, which is the
+/// same space the layout uses, so it does the measuring and this does the
+/// resizing.
+#[tauri::command]
+pub fn fit_main_to_screen(app: AppHandle, width: f64, height: f64) -> Result<(), String> {
+    let Some(win) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    let monitor = win
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| win.primary_monitor().ok().flatten());
+    let Some(monitor) = monitor else {
+        return Ok(());
+    };
+    let area = monitor.size();
+    // Leave room for the title bar and the taskbar.
+    let max_width = area.width as f64 * 0.94;
+    let max_height = area.height as f64 * 0.90;
+    let target_width = width.min(max_width).max(560.0);
+    let target_height = height.min(max_height).max(380.0);
+    if target_width < width - 1.0 || target_height < height - 1.0 {
+        let _ = win.set_size(PhysicalSize::new(
+            target_width.round() as u32,
+            target_height.round() as u32,
+        ));
+        let _ = win.center();
+    }
+    Ok(())
 }
 
 /// Match the native window chrome to the app theme. A white UI under a black

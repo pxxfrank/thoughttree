@@ -2,7 +2,29 @@ import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { quitApp } from '../storage/desktop-actions'
+import type { Theme } from '../theme/theme'
 import { ShortcutHelp } from './ShortcutHelp'
+
+/** One header button cycles the three options, so the control stays small and
+ *  the current state is visible at a glance. */
+const THEME_CYCLE: Theme[] = ['system', 'light', 'dark']
+
+const THEME_GLYPHS: Record<Theme, string> = {
+  system: '◐',
+  light: '☀',
+  dark: '☾',
+}
+
+const THEME_LABEL_KEYS: Record<Theme, string> = {
+  system: 'theme.system',
+  light: 'theme.light',
+  dark: 'theme.dark',
+}
+
+function nextTheme(current: Theme): Theme {
+  const index = THEME_CYCLE.indexOf(current)
+  return THEME_CYCLE[(index + 1) % THEME_CYCLE.length]
+}
 
 function FilterChip({
   active,
@@ -72,6 +94,16 @@ export function Header() {
             onClick={() => store.setFilter('onlyUnexplained', !state.onlyUnexplained)}
           />
         </div>
+
+        {/* Left, not right: a window can be wider than the display it sits on,
+            and anything right-aligned then becomes unreachable. */}
+        <button
+          className="btn icon"
+          title={t('action.theme.title', { name: t(THEME_LABEL_KEYS[state.theme]) })}
+          onClick={() => void store.setTheme(nextTheme(state.theme))}
+        >
+          {THEME_GLYPHS[state.theme]}
+        </button>
 
         <span className="spacer" />
 

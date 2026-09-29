@@ -4,8 +4,8 @@ use crate::AppDb;
 use serde::Serialize;
 use std::sync::Mutex;
 use tauri::{
-    AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewWindow,
-    Monitor, State,
+    App, AppHandle, Manager, Monitor, PhysicalPosition, PhysicalSize, State, WebviewUrl,
+    WebviewWindow, WebviewWindowBuilder,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
@@ -29,6 +29,38 @@ pub struct OrbState(pub Mutex<OrbRuntime>);
 pub struct CaptureSource {
     pub app: Option<String>,
     pub title: Option<String>,
+}
+
+/// --- Windows created at startup -------------------------------------------
+///
+/// The main and capture windows are built here rather than declared in
+/// `tauri.conf.json`, because config windows are created *before* the setup hook
+/// runs. A packaged front end boots from embedded assets and calls `db_load`
+/// within milliseconds, so the database has to be managed first.
+
+pub fn create_main_window(app: &App) -> tauri::Result<()> {
+    WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+        .title("ThoughtTree")
+        .inner_size(1200.0, 780.0)
+        .min_inner_size(880.0, 520.0)
+        .center()
+        .build()?;
+    Ok(())
+}
+
+pub fn create_capture_window(app: &App) -> tauri::Result<()> {
+    WebviewWindowBuilder::new(app, "capture", WebviewUrl::App("capture.html".into()))
+        .title("Quick Capture")
+        .inner_size(620.0, 104.0)
+        .transparent(true)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .visible(false)
+        .build()?;
+    Ok(())
 }
 
 /// --- Quick capture window -------------------------------------------------
@@ -130,12 +162,12 @@ fn monitor_for(win: &WebviewWindow) -> Option<Monitor> {
 
 fn persist_orb(app: &AppHandle, x: i32, y: i32, edge: &str) {
     let db = app.state::<AppDb>();
-    let Ok(conn) = db.0.lock() else {
-        return;
-    };
-    let _ = db::set_setting(&conn, "orb_x", &x.to_string());
-    let _ = db::set_setting(&conn, "orb_y", &y.to_string());
-    let _ = db::set_setting(&conn, "orb_edge", edge);
+    let _ = db.with(|conn| {
+        let _ = db::set_setting(conn, "orb_x", &x.to_string());
+        let _ = db::set_setting(conn, "orb_y", &y.to_string());
+        let _ = db::set_setting(conn, "orb_edge", edge);
+        Ok(())
+    });
 }
 
 /// The orb must be a true circle, so drop the caption styles Windows uses to
@@ -237,19 +269,20 @@ pub fn restore_orb(app: &AppHandle) {
     };
     let saved = {
         let db = app.state::<AppDb>();
-        let conn = match db.0.lock() {
-            Ok(c) => c,
-            Err(_) => return,
-        };
-        let x = db::get_setting(&conn, "orb_x").ok().flatten();
-        let y = db::get_setting(&conn, "orb_y").ok().flatten();
-        let edge = db::get_setting(&conn, "orb_edge").ok().flatten();
-        match (x, y, edge) {
-            (Some(x), Some(y), Some(edge)) => {
-                x.parse::<i32>().ok().zip(y.parse::<i32>().ok()).map(|(x, y)| (x, y, edge))
-            }
-            _ => None,
-        }
+        db.with(|conn| {
+            let x = db::get_setting(conn, "orb_x").ok().flatten();
+            let y = db::get_setting(conn, "orb_y").ok().flatten();
+            let edge = db::get_setting(conn, "orb_edge").ok().flatten();
+            Ok(match (x, y, edge) {
+                (Some(x), Some(y), Some(edge)) => x
+                    .parse::<i32>()
+                    .ok()
+                    .zip(y.parse::<i32>().ok())
+                    .map(|(x, y)| (x, y, edge)),
+                _ => None,
+            })
+        })
+        .unwrap_or(None)
     };
 
     match saved {
@@ -285,10 +318,8 @@ pub fn restore_orb(app: &AppHandle) {
 pub fn current_shortcut_accel(app: &AppHandle) -> String {
     let db = app.state::<AppDb>();
     let stored = db
-        .0
-        .lock()
-        .ok()
-        .and_then(|conn| db::get_setting(&conn, "shortcut").ok().flatten());
+        .with(|conn| Ok(db::get_setting(conn, "shortcut").ok().flatten()))
+        .unwrap_or(None);
     match stored {
         Some(v) if v.is_empty() => String::new(),
         Some(v) => v,
@@ -382,9 +413,6 @@ pub fn set_shortcut(app: AppHandle, state: State<'_, AppDb>, accel: String) -> R
             .map_err(|_| format!("invalid shortcut: {trimmed}"))?;
     }
     register_shortcut(&app, &trimmed)?;
-    {
-        let conn = state.0.lock().map_err(|e| e.to_string())?;
-        db::set_setting(&conn, "shortcut", &trimmed).map_err(|e| e.to_string())?;
-    }
+    state.with(|conn| db::set_setting(conn, "shortcut", &trimmed).map_err(|e| e.to_string()))?;
     Ok(())
 }

@@ -5,11 +5,62 @@ mod platform;
 mod tray;
 mod windows;
 
+use std::path::Path;
 use std::sync::Mutex;
 use tauri::{Manager, WindowEvent};
 use windows::OrbState;
 
-pub struct AppDb(pub Mutex<rusqlite::Connection>);
+/// The database handle.
+///
+/// The connection is optional so that a database which cannot be opened reports
+/// *why*, instead of leaving every command to fail with "state not managed".
+pub struct AppDb {
+    pub connection: Mutex<Option<rusqlite::Connection>>,
+    pub open_error: Option<String>,
+}
+
+impl AppDb {
+    pub fn open(path: &Path) -> Self {
+        match db::open(path) {
+            Ok(connection) => AppDb {
+                connection: Mutex::new(Some(connection)),
+                open_error: None,
+            },
+            Err(error) => AppDb {
+                connection: Mutex::new(None),
+                open_error: Some(error.to_string()),
+            },
+        }
+    }
+
+    pub fn with<T>(
+        &self,
+        run: impl FnOnce(&rusqlite::Connection) -> Result<T, String>,
+    ) -> Result<T, String> {
+        if let Some(error) = &self.open_error {
+            return Err(format!("the local database could not be opened: {error}"));
+        }
+        let guard = self.connection.lock().map_err(|e| e.to_string())?;
+        match guard.as_ref() {
+            Some(connection) => run(connection),
+            None => Err("the local database is not available".to_string()),
+        }
+    }
+
+    pub fn with_mut<T>(
+        &self,
+        run: impl FnOnce(&mut rusqlite::Connection) -> Result<T, String>,
+    ) -> Result<T, String> {
+        if let Some(error) = &self.open_error {
+            return Err(format!("the local database could not be opened: {error}"));
+        }
+        let mut guard = self.connection.lock().map_err(|e| e.to_string())?;
+        match guard.as_mut() {
+            Some(connection) => run(connection),
+            None => Err("the local database is not available".to_string()),
+        }
+    }
+}
 
 pub fn run() {
     tauri::Builder::default()
@@ -23,19 +74,21 @@ pub fn run() {
             let db_path = data_dir.join("thoughttree.db");
             db::backup_rotate(&db_path, &data_dir.join("backups"), 5);
 
-            let conn = db::open(&db_path)?;
-            app.manage(AppDb(Mutex::new(conn)));
+            // Manage the database *before* creating any window that talks to it.
+            // A packaged front end boots from embedded assets and fires `db_load`
+            // within milliseconds — faster than a window declared in
+            // tauri.conf.json, which is built before this hook even runs.
+            app.manage(AppDb::open(&db_path));
             app.manage(OrbState::default());
+
+            windows::create_main_window(app)?;
+            windows::create_capture_window(app)?;
 
             let accel = windows::current_shortcut_accel(&handle);
             if let Err(err) = windows::register_shortcut(&handle, &accel) {
                 eprintln!("[thoughttree] could not register shortcut '{accel}': {err}");
             }
             windows::restore_orb(&handle);
-            // Make sure the main window is genuinely visible and in front: the
-            // first ShowWindow of a process is replaced by whatever it was
-            // launched with (a hidden console, a "minimized" shortcut, a
-            // scheduled task).
             windows::show_main(&handle);
             windows::watch_main_window(handle.clone());
             if let Err(error) = tray::install(app) {

@@ -246,3 +246,46 @@ candidate and saved a half-typed thought — observed in a real session. For
 Chinese, Japanese and Korean users this would have made quick capture unusable.
 
 **Date**: 2026-09-28
+
+---
+
+## D016 — The main and capture windows are created in `setup`, not in the config
+
+**Decision**: `tauri.conf.json` declares only the orb. The main window and the
+quick-capture window are built with `WebviewWindowBuilder` inside the `setup`
+hook, *after* `app.manage(AppDb)`.
+
+**Reason**: Tauri builds the windows declared in the config **before** the setup
+hook runs. The first packaged build therefore failed with
+
+> state not managed for field `state` on command `db_load`
+
+because the embedded front end boots from local assets and fires `db_load`
+within milliseconds — much faster than the same page served by the Vite dev
+server, which is why this only ever appeared in a release build. Creating the
+windows after the database is managed removes the race at its root, rather than
+papering over it with retries in the front end.
+
+The orb is deliberately left in the config: it is `visible: false`, it is needed
+as the very first window (so the app always has one), and its page never talks to
+the database.
+
+**Trade-off**: Window geometry now lives in Rust instead of JSON. Worth it — the
+alternative is a startup-ordering bug that only reproduces in production.
+
+**Date**: 2026-09-29
+
+---
+
+## D017 — A database that cannot be opened must say so
+
+**Decision**: `AppDb` holds `Option<Connection>` plus the open error, and every
+command goes through `with` / `with_mut`.
+
+**Reason**: Failing to open the database used to abort the setup hook, leaving
+`AppDb` unmanaged and every command failing with Tauri's internal
+"state not managed" message. That tells the user nothing about what went wrong,
+in exactly the situation where they most need to know.
+
+**Date**: 2026-09-29
+

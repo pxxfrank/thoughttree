@@ -119,6 +119,10 @@ window never disagree.
 - Rotating database backup on every launch (5 kept).
 - Export JSON through a native save dialog.
 - Single-instance-free cross-window consistency via changeset broadcast.
+- **Packaged and verified**: `pnpm app:build` produces
+  `ThoughtTree_0.1.0_x64-setup.exe` (1.78 MB) plus a 4.5 MB standalone binary.
+  The installed build was run and checked end to end — it opens the database,
+  loads existing data, accepts a new capture and writes it to SQLite.
 
 **Quality**
 - 66 front end tests (domain + store, including the brief's integration cases:
@@ -151,6 +155,9 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
 5. **Drag does not auto-scroll** when a drop target is off-screen.
 6. The orb's idle "peek" and the freeform positions are only verified on a single
    monitor.
+7. **The orb is created before the database is managed** (it has to be, so the
+   app always has a window). This is safe only because the orb's page never calls
+   a database command; keep it that way, or move it into `setup` too.
 
 ---
 

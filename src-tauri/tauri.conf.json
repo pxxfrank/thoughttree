@@ -13,17 +13,6 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "label": "main",
-        "title": "ThoughtTree",
-        "url": "index.html",
-        "width": 1200,
-        "height": 780,
-        "minWidth": 880,
-        "minHeight": 520,
-        "resizable": true,
-        "center": true
-      },
-      {
         "label": "orb",
         "url": "orb.html",
         "width": 64,
@@ -35,20 +24,6 @@
         "resizable": false,
         "shadow": false,
         "visible": false
-      },
-      {
-        "label": "capture",
-        "url": "capture.html",
-        "width": 620,
-        "height": 104,
-        "transparent": true,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "resizable": false,
-        "shadow": false,
-        "visible": false,
-        "focus": true
       }
     ],
     "security": {

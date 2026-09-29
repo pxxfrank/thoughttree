@@ -135,6 +135,15 @@ export function useKeyboard(): void {
           event.preventDefault()
           store.beginEdit(current.node.id)
           return
+        case 'e':
+        case 'E':
+          // "Why here?" is otherwise only reachable by dragging or by finding the
+          // button in the detail panel. A question whose relation is unexplained
+          // needs a keyboard route to the prompt.
+          if (!current || !current.node.parent_id) return
+          event.preventDefault()
+          store.openWhyHere(current.node.id)
+          return
         case 'Delete':
         case 'Backspace':
           if (!current) return

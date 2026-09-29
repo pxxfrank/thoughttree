@@ -45,6 +45,7 @@ pub fn create_main_window(app: &App) -> tauri::Result<()> {
         .min_inner_size(880.0, 520.0)
         .center()
         .build()?;
+    fit_main_window(app.handle());
     Ok(())
 }
 
@@ -126,6 +127,39 @@ pub fn show_main(app: &AppHandle) {
     }
 }
 
+/// Shrinks the main window to fit the current monitor. Called both right after
+/// creation and again once the window is really on screen — the monitor and the
+/// final frame size are not always settled at creation time.
+pub fn fit_main_window(app: &AppHandle) {
+    let Some(win) = app.get_webview_window("main") else {
+        return;
+    };
+    let monitor = win
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| win.primary_monitor().ok().flatten());
+    let Some(monitor) = monitor else {
+        return;
+    };
+    // Compare physical with physical. Mixing logical sizes and scale factors is
+    // how this silently failed before.
+    let area = monitor.size();
+    let margin = (64.0 * monitor.scale_factor()) as u32;
+    let max_width = area.width.saturating_sub(32);
+    let max_height = area.height.saturating_sub(margin);
+    let Ok(size) = win.outer_size() else {
+        return;
+    };
+    if size.width > max_width || size.height > max_height {
+        let _ = win.set_size(PhysicalSize::new(
+            size.width.min(max_width),
+            size.height.min(max_height),
+        ));
+        let _ = win.center();
+    }
+}
+
 /// A freshly created window can end up minimized by the environment it was
 /// launched into — a remote session, a window manager, or a shortcut that starts
 /// minimised. The window's own event stream gives no hint, so check for the first
@@ -133,6 +167,8 @@ pub fn show_main(app: &AppHandle) {
 /// launch is the one thing the app must never get wrong.
 pub fn watch_main_window(app: AppHandle) {
     std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(400));
+        fit_main_window(&app);
         for _ in 0..50 {
             std::thread::sleep(std::time::Duration::from_millis(400));
             let Some(win) = app.get_webview_window("main") else {

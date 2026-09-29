@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { relationLabel } from '../domain/relations'
+import { relationKey } from '../domain/relations'
 import { indexChildren } from '../domain/tree'
 import type { Node, Status } from '../domain/types'
+import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { useEdgeFor } from '../state/selectors'
 
-const STATUSES: { value: Status; label: string }[] = [
-  { value: 'open', label: 'Open' },
-  { value: 'later', label: 'Later' },
-  { value: 'done', label: 'Done' },
-  { value: 'archived', label: 'Archived' },
+const STATUSES: { value: Status; key: string }[] = [
+  { value: 'open', key: 'status.open' },
+  { value: 'later', key: 'status.later' },
+  { value: 'done', key: 'status.done' },
+  { value: 'archived', key: 'status.archived' },
 ]
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -54,6 +55,7 @@ function AutoText({
 export function DetailPanel() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const node = state.selectedId ? state.nodes[state.selectedId] : undefined
   const edge = useEdgeFor(state.selectedId)
 
@@ -61,11 +63,9 @@ export function DetailPanel() {
     return (
       <section className="panel">
         <div className="panel-head">
-          <span className="panel-title">Question</span>
+          <span className="panel-title">{t('panel.question')}</span>
         </div>
-        <div className="empty">
-          Select a question to see its status, its relation to its parent, and your notes.
-        </div>
+        <div className="empty">{t('empty.detail')}</div>
       </section>
     )
   }
@@ -78,11 +78,11 @@ export function DetailPanel() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <span className="panel-title">Question</span>
+        <span className="panel-title">{t('panel.question')}</span>
         <span className="spacer" />
         <button
           className="btn ghost icon"
-          title="Delete this question and everything under it"
+          title={t('detail.delete.title')}
           onClick={() => store.remove([node.id])}
         >
           ✕
@@ -90,35 +90,35 @@ export function DetailPanel() {
       </div>
 
       <div className="detail">
-        <Field label="Question">
+        <Field label={t('field.question')}>
           <AutoText
             className="detail-question"
             rows={2}
             value={node.text}
-            placeholder="What are you actually trying to answer?"
+            placeholder={t('detail.questionPlaceholder')}
             onCommit={(next) => store.setText(node.id, next)}
           />
         </Field>
 
-        <Field label="Priority">
+        <Field label={t('field.priority')}>
           <div className="chips">
             <button
               className={`chip ${node.priority === 'normal' ? 'on' : ''}`}
               onClick={() => store.setPriority(node.id, 'normal')}
             >
-              Normal
+              {t('priority.normal')}
             </button>
             <button
               className={`chip important ${node.priority === 'important' ? 'on' : ''}`}
               onClick={() => store.setPriority(node.id, 'important')}
               title="Ctrl+I"
             >
-              ★ Important
+              {t('priority.important')}
             </button>
           </div>
         </Field>
 
-        <Field label="Status">
+        <Field label={t('field.status')}>
           <div className="chips">
             {STATUSES.map((status) => (
               <button
@@ -126,64 +126,62 @@ export function DetailPanel() {
                 className={`chip ${status.value} ${node.status === status.value ? 'on' : ''}`}
                 onClick={() => store.setStatus(node.id, status.value)}
               >
-                {status.label}
+                {t(status.key)}
               </button>
             ))}
           </div>
         </Field>
 
-        <Field label="Why here?">
+        <Field label={t('field.whyHere')}>
           {node.parent_id === null ? (
-            <div className="field-value hint">Top-level question — nothing to explain.</div>
+            <div className="field-value hint">{t('detail.noParent')}</div>
           ) : edge?.reason ? (
             <div>
               <div className="reason-quote">{edge.reason}</div>
               <div className="hint" style={{ marginTop: 5 }}>
-                {relationLabel(edge.relation_type)} ·{' '}
+                {t(relationKey(edge.relation_type))} ·{' '}
                 <button
                   className="btn ghost"
                   style={{ padding: '0 4px' }}
                   onClick={() => store.explain(node.id, edge.relation_type, '')}
                 >
-                  rewrite
+                  {t('detail.rewrite')}
                 </button>
               </div>
             </div>
           ) : (
             <div>
-              <div className="reason-quote missing">
-                ⚠ Unexplained relation — you filed this here without saying why.
-              </div>
+              <div className="reason-quote missing">{t('detail.unexplained')}</div>
               <button
                 className="btn primary"
                 style={{ marginTop: 6 }}
                 onClick={() => store.openWhyHere(node.id)}
               >
-                Explain relationship
+                {t('detail.explain')}
               </button>
             </div>
           )}
         </Field>
 
-        <Field label="Notes">
+        <Field label={t('field.notes')}>
           <AutoText
             value={node.note ?? ''}
-            placeholder="Working notes, half-formed thoughts…"
+            placeholder={t('detail.notesPlaceholder')}
             onCommit={(next) => store.setNote(node.id, next)}
           />
         </Field>
 
-        <Field label="Conclusion">
+        <Field label={t('field.conclusion')}>
           <AutoText
             value={node.conclusion ?? ''}
-            placeholder="What is the answer, once you have one?"
+            placeholder={t('detail.conclusionPlaceholder')}
             onCommit={(next) => store.setConclusion(node.id, next)}
           />
         </Field>
 
-        <Field label={`Open questions (${openChildren.length})`}>
+        <Field label={t('field.openQuestions', { n: openChildren.length })}>
           {children.length === 0 ? (
-            <div className="hint">No sub-questions yet.</div>
+            <div className="hint">{t('detail.noChildren')}</div>
           ) : (
             <ul className="child-list">
               {children.map((child) => (

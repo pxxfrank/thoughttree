@@ -124,13 +124,36 @@ window never disagree.
   The installed build was run and checked end to end — it opens the database,
   loads existing data, accepts a new capture and writes it to SQLite.
 
+**Phase 7 — experience polish (partial)**
+- Bilingual UI (English / 中文) with a switcher in *Keys & settings*; the
+  language defaults to the system language and is remembered. All labels, the
+  relation names, undo labels and toasts are translated; the domain layer only
+  carries translation keys.
+- Layout reads Inbox → Tree → Detail, with the tree given the widest column.
+- `E` opens "Why here?" from the keyboard.
+
 **Quality**
-- 66 front end tests (domain + store, including the brief's integration cases:
+- 67 front end tests (domain + store, including the brief's integration cases:
   Capture → Inbox, Inbox → Tree, Tree drag → Relation, Relation → Why Here,
-  Important → Focus, Done → hide/show, plus write-failure rollback and
-  cross-window sync).
+  Important → Focus, Done → hide/show, plus write-failure rollback,
+  cross-window sync, inbox/tree separation and language switching).
 - 5 Rust tests over the storage layer (create, upsert, cascade delete, one edge
   per child, settings).
+
+### Bugs found by driving the real app (all fixed)
+
+Packaging and then exercising the installed build — rather than trusting the
+unit tests — surfaced six defects that no amount of store-level testing would
+have caught:
+
+| # | Symptom | Cause | Fix |
+| --- | --- | --- | --- |
+| 1 | Packaged build died on launch: *state not managed* | Tauri creates config windows before the setup hook; embedded assets boot in milliseconds | D016 |
+| 2 | IME users could not type: Enter cut the thought short | every Enter/Escape handler ignored composition | D015 |
+| 3 | Unfiled captures appeared in the tree as well as the Inbox | `inbox` was modelled as "parentless" | D007 |
+| 4 | The bottom capture bar was invisible | window taller than the screen, **and** the bar shared the panels' background colour | D018, D019 |
+| 5 | "Why here?" could not be clicked at all | the click-outside scrim had a higher z-index than the popover | D020 |
+| 6 | Dragging into an empty tree did nothing | the only drop target was a 22px strip; the empty state was not droppable | — |
 
 ---
 
@@ -158,6 +181,20 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
 7. **The orb is created before the database is managed** (it has to be, so the
    app always has a window). This is safe only because the orb's page never calls
    a database command; keep it that way, or move it into `setup` too.
+8. **The bottom capture bar may still sit off the bottom edge.** It is confirmed
+   to render (a temporary red background proved it) and it now has a distinct
+   colour, but on this 150%-scaled display the main window's real painted extent
+   is larger than `outer_size()` reports, so the size clamp in `fit_main_window`
+   cannot be trusted to bring it on screen. Users on such a display should use
+   `Alt+Space` (the floating capture window) instead. Fixing this properly needs
+   the window measured in the same coordinate space the layout uses.
+9. **Automated UI-driving is unreliable in this environment.** Synthesised
+   keystrokes are mangled by the active IME and absolute click coordinates
+   disagree with `GetClientRect` (this shell is DPI-unaware, the app is
+   per-monitor aware). Flows were therefore verified with a mix of real input,
+   database assertions and screenshots. A real-browser E2E harness
+   (Playwright against the dev server, with the Tauri API stubbed) would make
+   this repeatable — see `TODO.md`.
 
 ---
 

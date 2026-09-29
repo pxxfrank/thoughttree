@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { LOCALES, useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta', 'ContextMenu'])
@@ -25,25 +26,10 @@ function toAccelerator(event: ReactKeyboardEvent<HTMLInputElement>): string | nu
   return parts.join('+')
 }
 
-const SHORTCUTS: [string, string][] = [
-  ['↑ / ↓', 'Move between questions'],
-  ['← / →', 'Collapse / expand'],
-  ['Enter', 'New question below'],
-  ['Tab', 'New sub-question'],
-  ['F2 or double-click', 'Rename a question'],
-  ['Delete', 'Delete question and its subtree'],
-  ['Ctrl+I', 'Toggle ★ Important'],
-  ['Ctrl+L', 'Toggle Later'],
-  ['Ctrl+K', 'Toggle Done'],
-  ['Ctrl+Shift+C', 'Focus the capture bar'],
-  ['Ctrl+Shift+F', 'Toggle Focus mode'],
-  ['Ctrl+Z / Ctrl+Shift+Z', 'Undo / redo'],
-  ['Esc', 'Deselect, or close a popover'],
-]
-
 function ShortcutRecorder() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const [value, setValue] = useState(state.shortcut)
 
   useEffect(() => setValue(state.shortcut), [state.shortcut])
@@ -60,7 +46,7 @@ function ShortcutRecorder() {
         }}
         value={value}
         readOnly
-        placeholder="Click and press a key combination"
+        placeholder={t('help.shortcut.placeholder')}
         onKeyDown={(event) => {
           event.preventDefault()
           if (event.key === 'Escape') {
@@ -79,7 +65,7 @@ function ShortcutRecorder() {
         }}
       />
       <button className="btn" onClick={() => void store.setShortcut('Alt+Space')}>
-        Reset
+        {t('help.shortcut.reset')}
       </button>
     </div>
   )
@@ -88,31 +74,64 @@ function ShortcutRecorder() {
 export function ShortcutHelp({ onClose }: { onClose: () => void }) {
   const store = useStore()
   const state = useAppState()
+  const { t, locale } = useI18n()
+
+  const shortcuts: [string, string][] = [
+    ['↑ / ↓', t('keys.move')],
+    ['← / →', t('keys.collapse')],
+    ['Enter', t('keys.sibling')],
+    ['Tab', t('keys.child')],
+    ['F2 or double-click', t('keys.rename')],
+    ['E', t('keys.explain')],
+    ['Delete', t('keys.delete')],
+    ['Ctrl+I', t('keys.important')],
+    ['Ctrl+L', t('keys.later')],
+    ['Ctrl+K', t('keys.done')],
+    ['Ctrl+Shift+C', t('keys.capture')],
+    ['Ctrl+Shift+F', t('keys.focus')],
+    ['Ctrl+Z / Ctrl+Shift+Z', t('keys.undo')],
+    ['Esc', t('keys.escape')],
+  ]
 
   return (
     <div className="backdrop" onClick={onClose}>
       <div className="dialog" onClick={(event) => event.stopPropagation()}>
         <div className="dialog-head">
-          <span>Keyboard &amp; settings</span>
+          <span>{t('help.title')}</span>
           <span className="spacer" style={{ flex: 1 }} />
           <button className="btn ghost" onClick={onClose}>
-            Close
+            {t('help.close')}
           </button>
         </div>
         <div className="dialog-body">
           <div className="field">
-            <div className="field-label">Global quick capture shortcut</div>
-            <ShortcutRecorder />
-            <div className="hint" style={{ marginTop: 6 }}>
-              Works from any application. Leave empty to disable.
+            <div className="field-label">{t('help.language')}</div>
+            <div className="chips">
+              {LOCALES.map((entry) => (
+                <button
+                  key={entry.value}
+                  className={`chip ${locale === entry.value ? 'on' : ''}`}
+                  onClick={() => void store.setLocale(entry.value)}
+                >
+                  {entry.label}
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="field">
-            <div className="field-label">In-app shortcuts</div>
+            <div className="field-label">{t('help.shortcut')}</div>
+            <ShortcutRecorder />
+            <div className="hint" style={{ marginTop: 6 }}>
+              {t('help.shortcut.hint')}
+            </div>
+          </div>
+
+          <div className="field">
+            <div className="field-label">{t('help.inApp')}</div>
             <table className="kbd-table">
               <tbody>
-                {SHORTCUTS.map(([keys, description]) => (
+                {shortcuts.map(([keys, description]) => (
                   <tr key={keys}>
                     <td>
                       {keys.split(' / ').map((chord) => (
@@ -134,14 +153,14 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="field" style={{ marginBottom: 0 }}>
-            <div className="field-label">Where your data lives</div>
+            <div className="field-label">{t('help.data')}</div>
             <div className="hint" style={{ marginBottom: 8 }}>
-              {state.dataDir || 'Local application data folder'}
+              {state.dataDir || t('help.dataFolder')}
               <br />
-              Everything is stored locally in SQLite. A rotating backup is taken on every launch.
+              {t('help.data.hint')}
             </div>
             <button className="btn" onClick={() => void store.exportJson()}>
-              Export JSON
+              {t('help.export')}
             </button>
           </div>
         </div>

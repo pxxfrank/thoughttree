@@ -10,6 +10,11 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 
 ## P1 — Required for a good MVP
 
+- [ ] **A real-browser E2E harness.** Drive the actual UI with Playwright against
+  the Vite dev server, with the Tauri API stubbed by `MemoryPersistence`
+  (gated behind `import.meta.env.DEV`). This is the only reliable way to
+  regression-test drag-and-drop, the relation prompt and the capture bar —
+  all three of which shipped broken despite a green unit-test suite.
 - [ ] **Capture context** — record the foreground application and window title
   with every capture (§4.4). Columns `source_app` / `source_title` exist and are
   wired end to end; `capture_source_context` currently returns nulls. Needs a

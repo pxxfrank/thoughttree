@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import { useStore } from '../state/context'
 import { hideCaptureWindow } from '../storage/desktop-actions'
 import { isComposing } from '../util/keyboard'
@@ -11,6 +12,7 @@ const SAVED_FLASH_MS = 150
  */
 export function Capture() {
   const store = useStore()
+  const { t } = useI18n()
   const [text, setText] = useState('')
   const [saved, setSaved] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -67,7 +69,7 @@ export function Capture() {
           className="capture-input"
           rows={1}
           value={text}
-          placeholder="Input a thought or question…"
+          placeholder={t('quick.placeholder')}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={(event) => {
             if (isComposing(event)) return
@@ -81,7 +83,7 @@ export function Capture() {
           }}
         />
         <span className="capture-hint">
-          <kbd>Enter</kbd> save · <kbd>Esc</kbd> cancel
+          <kbd>Enter</kbd> {t('quick.save')} · <kbd>Esc</kbd> {t('quick.cancel')}
         </span>
       </div>
     </div>

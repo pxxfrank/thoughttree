@@ -200,7 +200,9 @@ textarea {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(300px, 1.15fr) minmax(280px, 0.95fr) minmax(300px, 1fr);
+  /* Inbox → Tree → Detail: the reading order the work actually happens in.
+     The tree gets the most room because it is where the thinking lives. */
+  grid-template-columns: minmax(250px, 0.8fr) minmax(320px, 1.35fr) minmax(290px, 1fr);
   gap: 1px;
   background: var(--border-soft);
   min-height: 0;
@@ -694,8 +696,10 @@ textarea {
 
 .capture-bar {
   border-top: 1px solid var(--border);
-  background: var(--panel);
-  padding: 9px 12px;
+  /* Deliberately lighter than the panels: this is the one place you type, and
+     against the panel colour it was invisible. */
+  background: var(--panel-2);
+  padding: 10px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -703,18 +707,20 @@ textarea {
 
 .capture-bar input {
   flex: 1;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
+  min-width: 0;
+  background: var(--panel-3);
+  border: 1px solid #2f3650;
   border-radius: var(--radius);
-  padding: 8px 12px;
+  padding: 9px 12px;
   color: var(--text);
 }
 .capture-bar input:focus {
-  border-color: var(--accent-line);
-  background: var(--panel-3);
+  border-color: var(--accent);
+  background: #232839;
+  box-shadow: 0 0 0 3px rgba(108, 124, 255, 0.16);
 }
 .capture-bar input::placeholder {
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .capture-hint {
@@ -725,9 +731,18 @@ textarea {
 
 /* ---------- popovers ---------- */
 
+/* The click-outside scrim for a popover. It must sit *below* the popover
+   itself, otherwise the popover is painted but cannot be clicked. */
+.popover-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 84;
+  background: transparent;
+}
+
 .popover {
   position: fixed;
-  z-index: 60;
+  z-index: 85;
   background: var(--panel-2);
   border: 1px solid #2c3450;
   border-radius: 10px;
@@ -884,14 +899,31 @@ kbd {
   white-space: nowrap;
 }
 
+/* ---------- drag & drop targets ---------- */
+
 .root-drop {
-  height: 22px;
+  height: 26px;
   border-radius: var(--radius-sm);
   border: 1px dashed transparent;
+  margin-top: 4px;
 }
 .root-drop.active {
   border-color: var(--accent-line);
   background: var(--accent-soft);
+}
+
+/* While a question is being dragged, the empty part of the tree panel is a
+   valid target for filing it at the top level. */
+.panel-body[data-root-drop='true'] {
+  position: relative;
+}
+
+.tree-drop-hint {
+  display: none;
+}
+
+.panel-body.drag-over-empty .tree-drop-hint {
+  display: block;
 }
 
 .settings-row {

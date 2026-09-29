@@ -7,7 +7,9 @@ export class DomainError extends Error {}
 
 /** A reversible edit: the forward changeset plus the changeset that undoes it. */
 export interface Mutation {
-  label: string
+  /** Translation key; the domain never owns display text. */
+  labelKey: string
+  labelParams?: Record<string, number>
   forward: Changes
   backward: Changes
 }
@@ -55,18 +57,23 @@ export function captureMutation(
     source_title: source.title ?? null,
   })
   return {
-    label: 'Capture',
+    labelKey: 'mutation.capture',
     forward: { ...emptyChanges(), upsert_nodes: [created] },
     backward: { ...emptyChanges(), delete_nodes: [created.id] },
   }
 }
 
-function patch(prev: Node, changes: Partial<Node>, label: string, now: number): Mutation | null {
+function patch(
+  prev: Node,
+  changes: Partial<Node>,
+  labelKey: string,
+  now: number,
+): Mutation | null {
   const next: Node = { ...prev, ...changes, updated_at: now }
   const unchanged = (Object.keys(changes) as (keyof Node)[]).every((k) => prev[k] === next[k])
   if (unchanged) return null
   return {
-    label,
+    labelKey,
     forward: { ...emptyChanges(), upsert_nodes: [next] },
     backward: { ...emptyChanges(), upsert_nodes: [prev] },
   }
@@ -75,11 +82,11 @@ function patch(prev: Node, changes: Partial<Node>, label: string, now: number): 
 export function setTextMutation(prev: Node, text: string, now = nowMs()): Mutation | null {
   const trimmed = text.trim()
   if (!trimmed) return null
-  return patch(prev, { text: trimmed }, 'Edit question', now)
+  return patch(prev, { text: trimmed }, 'mutation.editQuestion', now)
 }
 
 export function setStatusMutation(prev: Node, status: Status, now = nowMs()): Mutation | null {
-  return patch(prev, { status }, `Mark ${status}`, now)
+  return patch(prev, { status }, `mutation.mark${statusLabel(status)}`, now)
 }
 
 export function setPriorityMutation(
@@ -90,9 +97,13 @@ export function setPriorityMutation(
   return patch(
     prev,
     { priority },
-    priority === 'important' ? 'Mark important' : 'Unmark important',
+    priority === 'important' ? 'mutation.markImportant' : 'mutation.markNormal',
     now,
   )
+}
+
+function statusLabel(status: Status): string {
+  return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
 /** Archiving files a thought away, so it stops being pending triage in the Inbox. */
@@ -104,13 +115,13 @@ export function setStatusFromInboxMutation(
   return patch(
     prev,
     status === 'archived' ? { status, inbox: false } : { status },
-    status === 'archived' ? 'Archive' : `Mark ${status}`,
+    status === 'archived' ? 'mutation.archive' : `mutation.mark${statusLabel(status)}`,
     now,
   )
 }
 
 export function setNoteMutation(prev: Node, note: string, now = nowMs()): Mutation | null {
-  return patch(prev, { note: note.trim().length ? note : null }, 'Edit notes', now)
+  return patch(prev, { note: note.trim().length ? note : null }, 'mutation.editNotes', now)
 }
 
 export function setConclusionMutation(
@@ -121,13 +132,13 @@ export function setConclusionMutation(
   return patch(
     prev,
     { conclusion: conclusion.trim().length ? conclusion : null },
-    'Edit conclusion',
+    'mutation.editConclusion',
     now,
   )
 }
 
 export function toggleCollapseMutation(prev: Node, now = nowMs()): Mutation | null {
-  return patch(prev, { collapsed: !prev.collapsed }, 'Toggle children', now)
+  return patch(prev, { collapsed: !prev.collapsed }, 'mutation.toggleChildren', now)
 }
 
 /** Deletes a node and everything beneath it, so no orphan is ever left behind. */
@@ -144,7 +155,8 @@ export function deleteMutation(ctx: MutationContext, ids: string[]): Mutation | 
   const removedNodes = ctx.nodes.filter((n) => doomed.has(n.id))
   const removedEdges = ctx.edges.filter((e) => doomed.has(e.from_node) || doomed.has(e.to_node))
   return {
-    label: removedNodes.length > 1 ? `Delete ${removedNodes.length} questions` : 'Delete question',
+    labelKey: removedNodes.length > 1 ? 'mutation.deleteMany' : 'mutation.deleteOne',
+    labelParams: removedNodes.length > 1 ? { n: removedNodes.length } : undefined,
     forward: { ...emptyChanges(), delete_nodes: [...doomed] },
     backward: { ...emptyChanges(), upsert_nodes: removedNodes, upsert_edges: removedEdges },
   }
@@ -229,7 +241,7 @@ export function addChildMutation(
       created_at: now,
     })
   }
-  return { label: 'Add question', forward, backward }
+  return { labelKey: 'mutation.addQuestion', forward, backward }
 }
 
 /**
@@ -292,7 +304,8 @@ export function placeMutation(
   }
 
   return {
-    label: moves.length === 1 ? 'Move question' : `Move ${moves.length} questions`,
+    labelKey: moves.length === 1 ? 'mutation.moveOne' : 'mutation.moveMany',
+    labelParams: moves.length === 1 ? undefined : { n: moves.length },
     forward,
     backward,
   }
@@ -311,7 +324,7 @@ export function setRelationMutation(
   }
   if (next.relation_type === edge.relation_type && next.reason === edge.reason) return null
   return {
-    label: 'Explain relation',
+    labelKey: 'mutation.explainRelation',
     forward: { ...emptyChanges(), upsert_edges: [next] },
     backward: { ...emptyChanges(), upsert_edges: [edge] },
   }

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { useInbox } from '../state/selectors'
 import { relativeTime } from '../util/format'
@@ -8,6 +9,7 @@ import { useDnd } from './dnd'
 export function InboxPanel() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const items = useInbox()
   const { begin, isDragging } = useDnd()
   const lastClicked = useRef<number>(-1)
@@ -52,7 +54,7 @@ export function InboxPanel() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <span className="panel-title">Inbox</span>
+        <span className="panel-title">{t('panel.inbox')}</span>
         <span className="count">{items.length}</span>
         <span className="spacer" />
         {items.length > 0 && (
@@ -60,40 +62,36 @@ export function InboxPanel() {
             className="btn ghost"
             onClick={() => store.selectInbox(selection.length === items.length ? [] : items.map((n) => n.id))}
           >
-            {selection.length === items.length ? 'Clear' : 'Select all'}
+            {selection.length === items.length ? t('inbox.clear') : t('inbox.selectAll')}
           </button>
         )}
       </div>
 
       {selection.length > 0 && (
         <div className="bulk-bar">
-          <span className="count">{selection.length} selected</span>
+          <span className="count">{t('inbox.selected', { n: selection.length })}</span>
           <span className="spacer" />
           <button className="btn" onClick={() => bulk('important')}>
-            ★ Important
+            {t('inbox.important')}
           </button>
           <button className="btn" onClick={() => bulk('later')}>
-            ↓ Later
+            {t('inbox.later')}
           </button>
           <button className="btn" onClick={() => bulk('open')}>
-            ↺ Open
+            {t('inbox.open')}
           </button>
           <button className="btn" onClick={() => bulk('archive')}>
-            Archive
+            {t('inbox.archive')}
           </button>
           <button className="btn" onClick={() => bulk('delete')}>
-            Delete
+            {t('inbox.delete')}
           </button>
         </div>
       )}
 
       <div className="panel-body" onClick={() => store.selectInbox([])}>
         {items.length === 0 ? (
-          <div className="empty">
-            Inbox is empty.
-            <br />
-            Every captured thought lands here, unfiled and unfiltered.
-          </div>
+          <div className="empty">{t('empty.inbox')}</div>
         ) : (
           items.map((node, index) => (
             <div
@@ -116,7 +114,7 @@ export function InboxPanel() {
                 setDraft(node.text)
               }}
             >
-              <span className="inbox-grip" title="Drag into the tree">
+              <span className="inbox-grip" title={t('inbox.grip')}>
                 ⋮⋮
               </span>
               <div className="body">
@@ -150,7 +148,7 @@ export function InboxPanel() {
                   {(node.priority === 'important' || node.status !== 'open') && (
                     <span>
                       {node.priority === 'important' ? '★' : ''}
-                      {node.status !== 'open' ? ` ${node.status}` : ''}
+                      {node.status !== 'open' ? ` ${t(`status.${node.status}`)}` : ''}
                     </span>
                   )}
                 </div>
@@ -159,7 +157,7 @@ export function InboxPanel() {
           ))
         )}
         <div className="hint" style={{ padding: '10px 10px 0' }}>
-          Drag an item into the tree — or select several and file them together.
+          {t('empty.inboxHint')}
         </div>
       </div>
     </section>

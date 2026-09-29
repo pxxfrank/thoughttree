@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { TreeItem } from '../domain/tree'
+import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { useUnexplained, useVisibleForest } from '../state/selectors'
 import { isComposing } from '../util/keyboard'
@@ -57,6 +58,7 @@ function TextEditor({
 
 function InlineCreate({ parentId, index }: { parentId: string | null; index: number }) {
   const store = useStore()
+  const { t } = useI18n()
   const [cursor, setCursor] = useState(index)
   const [value, setValue] = useState('')
   const settled = useRef(false)
@@ -97,7 +99,7 @@ function InlineCreate({ parentId, index }: { parentId: string | null; index: num
         className="create-input"
         value={value}
         autoFocus
-        placeholder="New question…  (Enter to add, Esc to stop)"
+        placeholder={t('tree.newQuestion')}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={(event) => {
           if (isComposing(event)) return
@@ -118,6 +120,7 @@ function InlineCreate({ parentId, index }: { parentId: string | null; index: num
 function TreeRow({ item }: { item: TreeItem }) {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const unexplained = useUnexplained()
   const { target, begin, isDragging } = useDnd()
   const ref = useRef<HTMLDivElement>(null)
@@ -165,7 +168,7 @@ function TreeRow({ item }: { item: TreeItem }) {
             event.stopPropagation()
             store.toggleCollapse(node.id)
           }}
-          title={node.collapsed ? 'Expand' : 'Collapse'}
+          title={t('keys.collapse')}
         >
           ▶
         </button>
@@ -177,7 +180,7 @@ function TreeRow({ item }: { item: TreeItem }) {
             event.stopPropagation()
             store.togglePriority(node.id)
           }}
-          title="Important (Ctrl+I)"
+          title={`${t('keys.important')} (Ctrl+I)`}
         >
           {node.priority === 'important' ? '★' : '☆'}
         </button>
@@ -203,7 +206,7 @@ function TreeRow({ item }: { item: TreeItem }) {
               {node.text}
             </span>
             {unexplained.has(node.id) && (
-              <span className="warn-mark" title="Unexplained relation — say why this belongs here">
+              <span className="warn-mark" title={t('keys.explain')}>
                 ⚠
               </span>
             )}
@@ -212,7 +215,7 @@ function TreeRow({ item }: { item: TreeItem }) {
 
         <span className="row-actions" data-no-drag>
           <button
-            title="Add sub-question (Tab)"
+            title={`${t('keys.child')} (Tab)`}
             onClick={(event) => {
               event.stopPropagation()
               store.select(node.id)
@@ -222,7 +225,7 @@ function TreeRow({ item }: { item: TreeItem }) {
             +
           </button>
           <button
-            title="Move to Later (Ctrl+L)"
+            title={`${t('keys.later')} (Ctrl+L)`}
             onClick={(event) => {
               event.stopPropagation()
               store.setStatus(node.id, node.status === 'later' ? 'open' : 'later')
@@ -231,7 +234,7 @@ function TreeRow({ item }: { item: TreeItem }) {
             ↓
           </button>
           <button
-            title="Mark done (Ctrl+K)"
+            title={`${t('keys.done')} (Ctrl+K)`}
             onClick={(event) => {
               event.stopPropagation()
               store.setStatus(node.id, node.status === 'done' ? 'open' : 'done')
@@ -240,7 +243,7 @@ function TreeRow({ item }: { item: TreeItem }) {
             ✓
           </button>
           <button
-            title="Delete (Del)"
+            title={`${t('keys.delete')} (Del)`}
             onClick={(event) => {
               event.stopPropagation()
               store.remove([node.id])
@@ -294,6 +297,7 @@ function Branch({
 export function TreePanel() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const { forest, flat } = useVisibleForest()
   const { target } = useDnd()
   const treeTotal = Object.values(state.nodes).filter((node) => !node.inbox).length
@@ -301,14 +305,14 @@ export function TreePanel() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <span className="panel-title">Research Tree</span>
+        <span className="panel-title">{t('panel.tree')}</span>
         <span className="count">
           {flat.length}/{treeTotal}
         </span>
         <span className="spacer" />
         <button
           className="btn ghost icon"
-          title="New root question"
+          title={t('panel.newRoot')}
           onClick={() => store.beginCreate(null, forest.length)}
         >
           +
@@ -316,6 +320,7 @@ export function TreePanel() {
       </div>
       <div
         className="panel-body"
+        data-root-drop="true"
         onClick={() => {
           store.select(null)
           store.cancelCreate()
@@ -323,20 +328,16 @@ export function TreePanel() {
       >
         {forest.length === 0 && !state.creating ? (
           <div className="empty">
-            {state.focusMode
-              ? 'No important open questions right now.'
-              : 'Your tree is empty.'}
+            {state.focusMode ? t('empty.treeFiltered') : t('empty.tree')}
             <br />
-            Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> or click the orb to capture a
-            thought.
+            {t('empty.treeCapture')}
             <br />
-            Drag questions from the Inbox into this tree.
+            {t('empty.treeHint')}
           </div>
         ) : (
           <Branch items={forest} parentId={null} />
         )}
         <div
-          data-root-drop
           className={`root-drop ${target?.kind === 'root-end' ? 'active' : ''}`}
           onDoubleClick={(event) => {
             event.stopPropagation()

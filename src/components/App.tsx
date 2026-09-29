@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
-import { indexChildren, roots } from '../domain/tree'
+import { indexChildren } from '../domain/tree'
+import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { CaptureBar } from './CaptureBar'
 import { DetailPanel } from './DetailPanel'
@@ -15,6 +16,7 @@ import { useKeyboard } from '../hooks/useKeyboard'
 export function App() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
 
   useKeyboard()
 
@@ -30,7 +32,7 @@ export function App() {
       const moving = new Set(payload.ids)
 
       if (target.kind === 'root-end') {
-        store.place(payload.ids, null, roots(nodes).length)
+        store.place(payload.ids, null, store.treeRootCount())
         return
       }
 
@@ -56,13 +58,13 @@ export function App() {
   )
 
   if (!state.loaded) {
-    return <div className="empty">Opening your local database…</div>
+    return <div className="empty">{t('app.opening')}</div>
   }
 
   if (state.fatalError) {
     return (
       <div className="empty">
-        ThoughtTree could not open its local database.
+        {t('app.dbFailed')}
         <br />
         {state.fatalError}
       </div>
@@ -74,8 +76,8 @@ export function App() {
       <div className="app">
         <Header />
         <div className="workspace">
-          <TreePanel />
           {state.focusMode ? <FocusPanel /> : <InboxPanel />}
+          <TreePanel />
           <DetailPanel />
         </div>
         <CaptureBar />

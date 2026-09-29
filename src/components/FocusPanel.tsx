@@ -2,16 +2,18 @@ import { useAppState, useStore } from '../state/context'
 import { useFocusList, useInbox } from '../state/selectors'
 import { ancestorsOf } from '../domain/tree'
 import type { Node } from '../domain/types'
+import { useI18n } from '../i18n/useI18n'
 
-function contextLabel(nodes: Node[], node: Node): string {
+function contextLabel(nodes: Node[], node: Node, root: string): string {
   const chain = ancestorsOf(nodes, node.id)
-  if (chain.length === 0) return 'Main thread'
+  if (chain.length === 0) return root
   return chain.map((n) => n.text).join(' › ')
 }
 
 export function FocusPanel() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const targets = useFocusList()
   const inbox = useInbox()
   const nodes = Object.values(state.nodes)
@@ -19,35 +21,28 @@ export function FocusPanel() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <span className="panel-title">Focus</span>
+        <span className="panel-title">{t('panel.focus')}</span>
         <span className="count">{targets.length}</span>
       </div>
       <div className="focus-body">
-        <div className="focus-title">Current important questions</div>
-        <div className="focus-sub">
-          Everything else is still saved. It is just not what you are solving right now.
-        </div>
+        <div className="focus-title">{t('focus.title')}</div>
+        <div className="focus-sub">{t('focus.sub')}</div>
 
         {inbox.length > 0 && (
           <div className="hint" style={{ marginBottom: 18 }}>
-            {inbox.length} unprocessed {inbox.length === 1 ? 'thought is' : 'thoughts are'} waiting
-            in the Inbox.{' '}
+            {t('focus.waiting', { n: inbox.length })}{' '}
             <button
               className="btn ghost"
               style={{ padding: '0 4px' }}
               onClick={store.toggleFocusMode}
             >
-              Leave focus
+              {t('focus.leave')}
             </button>
           </div>
         )}
 
         {targets.length === 0 ? (
-          <div className="empty">
-            Nothing is marked important and open.
-            <br />
-            Star a question with <kbd>Ctrl</kbd>+<kbd>I</kbd> to pull it back into focus.
-          </div>
+          <div className="empty">{t('empty.focus')}</div>
         ) : (
           <ol className="focus-list">
             {targets.map((node, index) => (
@@ -59,7 +54,7 @@ export function FocusPanel() {
                   <span className="focus-index">{index + 1}.</span>
                   <span>
                     <span className="focus-text">{node.text}</span>
-                    <span className="focus-path">{contextLabel(nodes, node)}</span>
+                    <span className="focus-path">{contextLabel(nodes, node, t('focus.thread'))}</span>
                   </span>
                 </button>
               </li>

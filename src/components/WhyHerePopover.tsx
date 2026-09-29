@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { RELATION_TYPES } from '../domain/relations'
+import { RELATION_TYPES, relationKey } from '../domain/relations'
 import type { RelationType } from '../domain/types'
+import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { useEdgeFor } from '../state/selectors'
 import { isComposing } from '../util/keyboard'
@@ -15,6 +16,7 @@ const WIDTH = 430
 export function WhyHerePopover() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const nodeId = state.whyHereFor
   const node = nodeId ? state.nodes[nodeId] : undefined
   const edge = useEdgeFor(nodeId)
@@ -58,35 +60,31 @@ export function WhyHerePopover() {
   }
 
   return (
-    <>
-      <div className="backdrop" style={{ background: 'transparent' }} onClick={store.skipExplain} />
+    // The popover is nested *inside* the click-outside scrim. Nesting means it
+    // always paints above the scrim and always receives clicks — relying on
+    // z-index ordering between siblings is what made this prompt unreachable.
+    <div className="popover-scrim" onClick={store.skipExplain}>
       <div
         className="popover"
         style={{ left: position?.left ?? 40, top: position?.top ?? 80 }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="popover-title">Why here?</div>
+        <div className="popover-title">{t('why.title')}</div>
         <div className="popover-sub">
-          <strong>{node.text}</strong>
-          {parent ? (
-            <>
-              {' '}
-              now sits under <strong>{parent.text}</strong>. What makes that true?
-            </>
-          ) : (
-            ' moved.'
-          )}
+          {parent
+            ? t('why.sub', { child: node.text, parent: parent.text })
+            : t('why.moved', { child: node.text })}
         </div>
 
         <div className="chips" style={{ marginBottom: 9 }}>
           {RELATION_TYPES.map((relation) => (
             <button
-              key={relation.value}
-              className={`chip ${type === relation.value ? 'on' : ''}`}
-              title={relation.hint}
-              onClick={() => setType(relation.value)}
+              key={relation}
+              className={`chip ${type === relation ? 'on' : ''}`}
+              title={t(relationKey(relation) + '.hint')}
+              onClick={() => setType(relation)}
             >
-              {relation.label}
+              {t(relationKey(relation))}
             </button>
           ))}
         </div>
@@ -94,7 +92,7 @@ export function WhyHerePopover() {
         <input
           ref={inputRef}
           value={reason}
-          placeholder="Because…"
+          placeholder={t('why.placeholder')}
           onChange={(event) => setReason(event.target.value)}
           onKeyDown={(event) => {
             if (isComposing(event)) return
@@ -110,17 +108,15 @@ export function WhyHerePopover() {
 
         <div className="popover-actions">
           <button className="btn primary" onClick={save}>
-            Save reason
+            {t('why.save')}
           </button>
           <button className="btn ghost" onClick={store.skipExplain}>
-            Skip for now
+            {t('why.skip')}
           </button>
           <span className="spacer" style={{ flex: 1 }} />
-          <span className="hint">
-            {RELATION_TYPES.find((r) => r.value === type)?.hint}
-          </span>
+          <span className="hint">{t(relationKey(type) + '.hint')}</span>
         </div>
       </div>
-    </>
+    </div>
   )
 }

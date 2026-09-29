@@ -189,10 +189,10 @@ describe('undo / redo', () => {
   it('reports what will be undone', async () => {
     const { store } = await ready()
     store.capture('something')
-    expect(store.getState().undoLabel).toBe('Capture')
+    expect(store.getState().undoLabelKey).toBe('mutation.capture')
     store.undo()
-    expect(store.getState().undoLabel).toBeNull()
-    expect(store.getState().redoLabel).toBe('Capture')
+    expect(store.getState().undoLabelKey).toBeNull()
+    expect(store.getState().redoLabelKey).toBe('mutation.capture')
   })
 
   it('clears the redo stack once a new edit lands', async () => {
@@ -200,7 +200,14 @@ describe('undo / redo', () => {
     store.capture('one')
     store.undo()
     store.capture('two')
-    expect(store.getState().redoLabel).toBeNull()
+    expect(store.getState().redoLabelKey).toBeNull()
+  })
+
+  it('switches language and keeps it in settings', async () => {
+    const { store, persistence } = await ready()
+    await store.setLocale('zh')
+    expect(store.getState().locale).toBe('zh')
+    expect(persistence.settings['locale']).toBe('zh')
   })
 })
 
@@ -235,7 +242,7 @@ describe('reliability', () => {
       expect(store.getState().nodes[id]).toBeUndefined()
     })
     expect(store.getState().toast?.kind).toBe('error')
-    expect(store.getState().undoLabel).toBeNull()
+    expect(store.getState().undoLabelKey).toBeNull()
   })
 
   it('applies changesets coming from another window', async () => {
@@ -267,7 +274,7 @@ describe('reliability', () => {
     expect(store.getState().nodes['remote-1']).toBeDefined()
     expect(store.inbox().map((n) => n.text)).toEqual(['captured from the orb'])
     // a remote change must not pollute the local undo history
-    expect(store.getState().undoLabel).toBeNull()
+    expect(store.getState().undoLabelKey).toBeNull()
   })
 
   it('survives a reload from persistence', async () => {

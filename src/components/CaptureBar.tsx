@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { isComposing } from '../util/keyboard'
 
 export function CaptureBar() {
   const store = useStore()
   const state = useAppState()
+  const { t } = useI18n()
   const [text, setText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -19,7 +21,7 @@ export function CaptureBar() {
       <input
         ref={inputRef}
         value={text}
-        placeholder="Capture a thought or question…"
+        placeholder={t('capture.placeholder')}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
           if (isComposing(event)) return
@@ -34,10 +36,10 @@ export function CaptureBar() {
         data-capture-bar
       />
       <button className="btn primary" onClick={submit} disabled={!text.trim()}>
-        Capture
+        {t('capture.button')}
       </button>
       <span className="capture-hint">
-        Enter to save · {state.shortcut || 'no shortcut'} from anywhere
+        {t('capture.hint', { shortcut: state.shortcut || t('capture.noShortcut') })}
       </span>
     </div>
   )

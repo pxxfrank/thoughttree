@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { useI18n } from '../i18n/useI18n'
 
 export type DropTarget =
   | { kind: 'row'; nodeId: string; where: 'before' | 'after' | 'child' }
@@ -61,6 +62,7 @@ export function DndProvider({
   const [payload, setPayload] = useState<DragPayload | null>(null)
   const [target, setTarget] = useState<DropTarget | null>(null)
   const [pointer, setPointer] = useState({ x: 0, y: 0 })
+  const { t } = useI18n()
 
   const payloadRef = useRef<DragPayload | null>(null)
   const targetRef = useRef<DropTarget | null>(null)
@@ -140,7 +142,7 @@ export function DndProvider({
       {children}
       {payload && (
         <div className="drag-ghost" style={{ left: pointer.x, top: pointer.y }}>
-          {payload.ids.length > 1 ? `${payload.ids.length} questions` : payload.label}
+          {payload.ids.length > 1 ? t('drag.many', { n: payload.ids.length }) : payload.label}
         </div>
       )}
     </DndContext.Provider>

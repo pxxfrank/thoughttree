@@ -1,19 +1,20 @@
 import type { Edge, Node, RelationType } from './types'
 
-export const RELATION_TYPES: {
-  value: RelationType
-  label: string
-  hint: string
-}[] = [
-  { value: 'decompose', label: 'Decompose', hint: 'This is part of the parent question' },
-  { value: 'answer', label: 'Answer', hint: 'It helps answer the parent question' },
-  { value: 'support', label: 'Support', hint: 'It supports a judgement' },
-  { value: 'challenge', label: 'Challenge', hint: 'It challenges or refutes a judgement' },
-  { value: 'depends_on', label: 'Depends on', hint: 'The parent must be solved after this' },
+export const RELATION_TYPES: RelationType[] = [
+  'decompose',
+  'answer',
+  'support',
+  'challenge',
+  'depends_on',
 ]
 
-export function relationLabel(type: RelationType): string {
-  return RELATION_TYPES.find((r) => r.value === type)?.label ?? type
+/**
+ * Presentation lives in the i18n layer: the domain only owns the vocabulary.
+ * `relation.key` / `relation.key.hint` resolve to a label and a one-line
+ * explanation in the active language.
+ */
+export function relationKey(type: RelationType): string {
+  return `relation.${type}`
 }
 
 /** The single incoming edge of a node, i.e. the reason it sits where it sits. */

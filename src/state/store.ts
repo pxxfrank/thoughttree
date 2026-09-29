@@ -21,11 +21,13 @@ import { edgeForNode, unexplainedNodeIds } from '../domain/relations'
 import { buildForest, indexChildren, orderWithMany } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
 import type { Changes, Edge, Node, Priority, RelationType, Snapshot, Status } from '../domain/types'
+import { detectLocale, type Locale } from '../i18n/strings'
 import type { Persistence } from '../storage/persistence'
 
 export interface Toast {
   id: number
-  text: string
+  key: string
+  params?: Record<string, string | number>
   kind: 'info' | 'warn' | 'error'
 }
 
@@ -46,9 +48,12 @@ export interface AppState extends EntityState {
   whyHereFor: string | null
   toast: Toast | null
   saveError: string | null
-  undoLabel: string | null
-  redoLabel: string | null
+  undoLabelKey: string | null
+  undoLabelParams?: Record<string, number>
+  redoLabelKey: string | null
+  redoLabelParams?: Record<string, number>
   shortcut: string
+  locale: Locale
   dataDir: string
 }
 
@@ -73,9 +78,10 @@ function initialState(): AppState {
     whyHereFor: null,
     toast: null,
     saveError: null,
-    undoLabel: null,
-    redoLabel: null,
+    undoLabelKey: null,
+    redoLabelKey: null,
     shortcut: DEFAULT_SHORTCUT,
+    locale: detectLocale(),
     dataDir: '',
   }
 }
@@ -127,10 +133,14 @@ export class AppStore {
   }
 
   private syncHistory(): void {
+    const undo = this.undoStack.at(-1)
+    const redo = this.redoStack.at(-1)
     this.state = {
       ...this.state,
-      undoLabel: this.undoStack.at(-1)?.label ?? null,
-      redoLabel: this.redoStack.at(-1)?.label ?? null,
+      undoLabelKey: undo?.labelKey ?? null,
+      undoLabelParams: undo?.labelParams,
+      redoLabelKey: redo?.labelKey ?? null,
+      redoLabelParams: redo?.labelParams,
     }
   }
 
@@ -166,13 +176,13 @@ export class AppStore {
       if (redoIndex >= 0) this.redoStack.splice(redoIndex, 1)
     }
     this.syncHistory()
-    this.toast(`Could not save — change reverted (${String(error)})`, 'error')
+    this.toast('toast.saveFailed', 'error', { error: String(error) })
     this.notify()
   }
 
-  toast(text: string, kind: Toast['kind'] = 'info'): void {
+  toast(key: string, kind: Toast['kind'] = 'info', params?: Record<string, string | number>): void {
     this.toastSeq += 1
-    this.patch({ toast: { id: this.toastSeq, text, kind } })
+    this.patch({ toast: { id: this.toastSeq, key, params, kind } })
     const timer = setTimeout(() => {
       if (this.state.toast?.id === this.toastSeq) this.patch({ toast: null })
     }, 4200)
@@ -185,7 +195,7 @@ export class AppStore {
 
   private fail(error: unknown): void {
     const message = error instanceof DomainError ? error.message : String(error)
-    this.toast(message, 'warn')
+    this.toast('toast.domainError', 'warn', { error: message })
   }
 
   // --- lifecycle ----------------------------------------------------------
@@ -210,12 +220,23 @@ export class AppStore {
     try {
       const settings = await this.persistence.readSettings()
       const dataDir = await this.persistence.dataDirectory()
+      const stored = settings['locale']
       this.patch({
         shortcut: settings['shortcut'] ?? DEFAULT_SHORTCUT,
+        locale: stored === 'en' || stored === 'zh' ? stored : this.state.locale,
         dataDir,
       })
     } catch {
       /* settings are a convenience; never block the app on them */
+    }
+  }
+
+  async setLocale(locale: Locale): Promise<void> {
+    this.patch({ locale })
+    try {
+      await this.persistence.writeSetting('locale', locale)
+    } catch (error) {
+      this.toast('toast.shortcutFailed', 'error', { error: String(error) })
     }
   }
 
@@ -317,8 +338,14 @@ export class AppStore {
   place(ids: string[], parentId: string | null, index: number): void {
     if (ids.length === 0) return
     const ctx = this.ctx()
-    const before = new Map(ids.map((id) => [id, ctx.nodes.find((n) => n.id === id)?.parent_id ?? null]))
-    const siblings = indexChildren(ctx.nodes).get(parentId) ?? []
+    const before = new Map(
+      ids.map((id) => [id, ctx.nodes.find((n) => n.id === id)?.parent_id ?? null]),
+    )
+    // Top-level ordering is a property of the *tree*. Unfiled captures are also
+    // parentless, but they live in the Inbox and must not take part in it.
+    const siblings = (indexChildren(ctx.nodes).get(parentId) ?? []).filter((node) =>
+      parentId === null ? !node.inbox : true,
+    )
     const ordered = orderWithMany(siblings, ids, index)
     try {
       const mutation = placeMutation(ctx, ids, parentId, ordered, undefined, {
@@ -335,6 +362,11 @@ export class AppStore {
     } catch (error) {
       this.fail(error)
     }
+  }
+
+  /** How many questions already sit at the top level of the tree. */
+  treeRootCount(): number {
+    return this.allNodes().filter((node) => node.parent_id === null && !node.inbox).length
   }
 
   /** Files an Inbox thought under a tree node (drag-and-drop target). */
@@ -459,9 +491,9 @@ export class AppStore {
   async exportJson(): Promise<void> {
     try {
       const path = await this.persistence.exportJson()
-      if (path) this.toast(`Exported to ${path}`)
+      if (path) this.toast('toast.exported', 'info', { path })
     } catch (error) {
-      this.toast(`Export failed: ${String(error)}`, 'error')
+      this.toast('toast.exportFailed', 'error', { error: String(error) })
     }
   }
 
@@ -470,9 +502,9 @@ export class AppStore {
       await this.persistence.applyShortcut(accel)
       await this.persistence.writeSetting('shortcut', accel)
       this.patch({ shortcut: accel })
-      this.toast(accel ? `Quick capture shortcut set to ${accel}` : 'Quick capture shortcut disabled')
+      this.toast(accel ? 'toast.shortcutSet' : 'toast.shortcutCleared', 'info', { accel })
     } catch (error) {
-      this.toast(`Could not set shortcut: ${String(error)}`, 'error')
+      this.toast('toast.shortcutFailed', 'error', { error: String(error) })
     }
   }
 }

@@ -160,6 +160,8 @@ const en: Dict = {
   'toast.shortcutSet': 'Quick capture shortcut set to {accel}',
   'toast.shortcutCleared': 'Quick capture shortcut disabled',
   'toast.shortcutFailed': 'Could not set shortcut: {error}',
+  'toast.shortcutConflict':
+    'Global shortcut “{accel}” is taken by another program, so quick capture cannot be triggered from outside the app. Choose a different one in the ? Keys dialog. You can still capture from the orb.',
   'toast.saveFailed': 'Could not save — change reverted ({error})',
   'toast.domainError': 'Could not do that: {error}',
   'toast.orbPosition': 'Orb position saved',
@@ -330,6 +332,8 @@ const zh: Dict = {
   'toast.shortcutSet': '快速记录快捷键已设为 {accel}',
   'toast.shortcutCleared': '已禁用快速记录快捷键',
   'toast.shortcutFailed': '设置快捷键失败：{error}',
+  'toast.shortcutConflict':
+    '全局快捷键「{accel}」已被其他程序占用，无法从应用外触发快速记录。请在「? 快捷键」对话框里换一个组合键。你仍然可以点击悬浮球记录。',
   'toast.saveFailed': '保存失败，改动已回滚（{error}）',
   'toast.domainError': '无法完成该操作：{error}',
   'toast.orbPosition': '悬浮球位置已保存',

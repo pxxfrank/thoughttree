@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { indexChildren } from '../domain/tree'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
-import { setAppTheme, fitMainToScreen } from '../storage/desktop-actions'
+import { setAppTheme, fitMainToScreen, checkShortcut } from '../storage/desktop-actions'
 import { applyTheme, resolveTheme } from '../theme/theme'
 import { CaptureBar } from './CaptureBar'
 import { DetailPanel } from './DetailPanel'
@@ -50,6 +50,19 @@ export function App() {
       Math.round(window.innerHeight * dpr),
     )
   }, [])
+
+  // A global shortcut can be taken by another program, which silently removes
+  // the app's main way in. Check a moment after startup — by then a previous
+  // instance has released the hotkey, so this also retries it — and say so
+  // plainly if it is still unavailable.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void checkShortcut().catch((accel: unknown) => {
+        store.toast('toast.shortcutConflict', 'error', { accel: String(accel) })
+      })
+    }, 1500)
+    return () => window.clearTimeout(timer)
+  }, [store])
 
   /**
    * Translates a raw pointer target into "which parent, which slot". The index

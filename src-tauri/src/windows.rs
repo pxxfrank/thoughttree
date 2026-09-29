@@ -9,7 +9,10 @@ use tauri::{
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
-pub const DEFAULT_SHORTCUT: &str = "Alt+Space";
+/// Alt+Space is a trap: Windows uses it for the window system menu, so a
+/// RegisterHotKey on it reports success but never fires. Ctrl+Shift+Space is
+/// free by default and matches what other capture-first apps use.
+pub const DEFAULT_SHORTCUT: &str = "Ctrl+Shift+Space";
 
 const ORB_MARGIN: i32 = 8;
 const ORB_PEEK_VISIBLE: i32 = 10;
@@ -397,6 +400,20 @@ pub fn register_shortcut(app: &AppHandle, accel: &str) -> Result<(), String> {
         }
     })
     .map_err(|e| e.to_string())
+}
+
+/// Reports whether the global shortcut is actually live.
+///
+/// Called by the front end a moment after startup: by then a previous instance
+/// has finished releasing the hotkey, so this doubles as a retry. It returns the
+/// accelerator as the error so the UI can name it.
+#[tauri::command]
+pub fn shortcut_status(app: AppHandle) -> Result<(), String> {
+    let accel = current_shortcut_accel(&app);
+    if accel.trim().is_empty() {
+        return Ok(());
+    }
+    register_shortcut(&app, &accel).map_err(|_| accel)
 }
 
 /// --- Commands -------------------------------------------------------------

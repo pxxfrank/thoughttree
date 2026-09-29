@@ -134,6 +134,7 @@ pub fn run() {
             windows::fit_main_to_screen,
             windows::capture_source_context,
             windows::set_shortcut,
+            windows::shortcut_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ThoughtTree");

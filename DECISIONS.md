@@ -435,4 +435,28 @@ broken. See `PROJECT_STATE.md` → Known Issues.
 
 **Date**: 2026-09-29
 
+---
+
+## D026 — The default global shortcut is not Alt+Space
+
+**Decision**: The default quick-capture shortcut becomes `Ctrl+Shift+Space`.
+
+**Reason**: `Alt+Space` is Windows' own system-menu accelerator. A
+`RegisterHotKey` on it **succeeds** and then never fires, so the app silently
+lost the primary way in — nothing was logged anywhere the user would see, and
+the window simply never appeared.
+
+Found by pressing the shortcut and watching the database: the quick-capture
+window never became visible, while clicking the orb did open it and a capture
+through the orb saved correctly and appeared in the list. Switching the default
+to `Ctrl+Shift+Space` made the same synthetic keypress open the window.
+
+**Also fixed**: the app now re-checks the shortcut shortly after startup (which
+also serves as a retry, since a previous instance may still be holding the
+hotkey) and tells the user plainly if it still cannot be registered — including
+that the orb still works. Silent loss of the main input path is worse than any
+message.
+
+**Date**: 2026-09-29
+
 

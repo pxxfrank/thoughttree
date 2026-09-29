@@ -13,3 +13,4 @@ export const fitMainToScreen = (width: number, height: number): Promise<unknown>
   invoke('fit_main_to_screen', { width, height })
 export const captureSourceContext = (): Promise<{ app: string | null; title: string | null }> =>
   invoke('capture_source_context')
+export const checkShortcut = (): Promise<unknown> => invoke('shortcut_status')

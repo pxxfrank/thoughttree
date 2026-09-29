@@ -186,9 +186,12 @@ export class AppStore {
   toast(key: string, kind: Toast['kind'] = 'info', params?: Record<string, string | number>): void {
     this.toastSeq += 1
     this.patch({ toast: { id: this.toastSeq, key, params, kind } })
+    // Errors usually need acting on, so they stay put much longer than a
+    // "saved" confirmation does.
+    const lifetime = kind === 'error' ? 14000 : 4200
     const timer = setTimeout(() => {
       if (this.state.toast?.id === this.toastSeq) this.patch({ toast: null })
-    }, 4200)
+    }, lifetime)
     ;(timer as unknown as { unref?: () => void }).unref?.()
   }
 

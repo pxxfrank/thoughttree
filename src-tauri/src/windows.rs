@@ -387,7 +387,9 @@ pub fn current_shortcut_accel(app: &AppHandle) -> String {
         // because a *Reset* button persisted the old value. Fall back to the
         // default and heal the row so the correction happens exactly once.
         Some(v) if v.trim() == DEAD_SHORTCUT => {
-            let _ = db.with(|conn| db::set_setting(conn, "shortcut", DEFAULT_SHORTCUT));
+            let _ = db.with(|conn| {
+                db::set_setting(conn, "shortcut", DEFAULT_SHORTCUT).map_err(|e| e.to_string())
+            });
             DEFAULT_SHORTCUT.to_string()
         }
         Some(v) => v,

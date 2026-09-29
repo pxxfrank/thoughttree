@@ -8,8 +8,12 @@ import { isComposing } from '../util/keyboard'
  * Jump-to-question. Typed words match the question, its notes and conclusion,
  * and the reason its parent gave for it; Enter reveals the best hit and opens
  * the branches above it.
+ *
+ * The same panel doubles as a node chooser: pass `onPick` and it selects a hit
+ * instead of revealing it, which is how a link target is chosen (Ctrl+P is the
+ * one palette either way, rather than a second picker).
  */
-export function SearchPalette() {
+export function SearchPalette({ onPick }: { onPick?: (nodeId: string) => void } = {}) {
   const store = useStore()
   const state = useAppState()
   const { t } = useI18n()
@@ -18,28 +22,38 @@ export function SearchPalette() {
   const [cursor, setCursor] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // In pick mode the palette is driven by the caller, not by `searching`.
+  const open = state.searching || !!onPick
+
   const hits = useMemo(
     () => searchNodes(Object.values(state.nodes), Object.values(state.edges), query),
     [state.nodes, state.edges, query],
   )
 
   useEffect(() => {
-    if (state.searching) {
+    if (open) {
       inputRef.current?.focus()
     } else {
       setQuery('')
       setCursor(0)
     }
-  }, [state.searching])
+  }, [open])
 
-  if (!state.searching) return null
+  if (!open) return null
 
   // Clamp so a stale cursor from a longer result list cannot point off the end.
   const active = hits.length ? Math.min(cursor, hits.length - 1) : 0
 
-  const reveal = (index: number) => {
+  const choose = (index: number) => {
     const hit = hits[index]
-    if (hit) store.revealNode(hit.node.id)
+    if (!hit) return
+    if (onPick) onPick(hit.node.id)
+    else store.revealNode(hit.node.id)
+  }
+
+  const close = () => {
+    if (onPick) store.cancelLink()
+    else store.closeSearch()
   }
 
   const move = (delta: number) => {
@@ -50,7 +64,7 @@ export function SearchPalette() {
   return (
     // The panel is nested *inside* the click-outside scrim, so it always paints
     // above it and always receives clicks (see DECISIONS.md D020).
-    <div className="popover-scrim" onClick={store.closeSearch}>
+    <div className="popover-scrim" onClick={close}>
       <div className="popover search-palette" onClick={(event) => event.stopPropagation()}>
         <input
           ref={inputRef}
@@ -73,11 +87,11 @@ export function SearchPalette() {
                 return
               case 'Enter':
                 event.preventDefault()
-                reveal(active)
+                choose(active)
                 return
               case 'Escape':
                 event.preventDefault()
-                store.closeSearch()
+                close()
                 return
               default:
                 return
@@ -93,7 +107,7 @@ export function SearchPalette() {
               <button
                 key={hit.node.id}
                 className={`search-row ${index === active ? 'on' : ''}`}
-                onClick={() => reveal(index)}
+                onClick={() => choose(index)}
               >
                 <span className="search-row-main">
                   <span className="search-row-text">{hit.node.text}</span>

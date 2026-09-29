@@ -542,4 +542,41 @@ undo a mutation whose backward changeset no longer describes the graph.
 
 **Date**: 2026-09-29
 
+---
+
+## D030 — A `kind` discriminator on `edges`, in place of the blanket one-incoming-edge rule
+
+**Decision**: Cross-branch relations (`challenge`, `support`, `depends_on`) are
+stored in the existing `edges` table, discriminated by a new
+`kind TEXT NOT NULL DEFAULT 'parent'` column. A `'parent'` edge is the tree link
+(a child has at most one incoming one); a `'link'` edge is a cross-cutting
+relation between any two nodes and is unconstrained in number. The invariant
+"at most one incoming edge per child" becomes a *partial* unique index
+(`ON edges(to_node) WHERE kind = 'parent'`), and links get their own partial
+unique index on `(from_node, to_node, relation_type)`.
+
+**Reason**: A link has exactly the shape of a parent edge — two endpoints, a
+type and a reason — so it rides the existing `upsert_edges`/`delete_edges`
+`Changes` channel unchanged. Undo/redo, cross-window broadcast and persistence
+therefore work with **no change to the wire format**; only the reducer and the
+SQLite side need to know that the old "one incoming edge" rule is now scoped to
+parent edges. A separate `links` table would have been a second write path, a
+second changeset channel, and a second thing to keep in sync.
+
+The risk of the discriminator is that the "one incoming edge" check exists in
+**seven** places (the reducer, the in-memory persistence mirror, the SQL
+`clear_edge`, the unique index, `edgeForNode`, `unexplainedNodeIds`'s `byTo`
+map, and the `Edge` row mapping). Every one of them had to become kind-scoped;
+missing one would silently delete a child's parent edge the moment a link was
+added whose `to_node` coincided with that child. A missing `kind` (data written
+before the feature) is read as `'parent'`, so an old export still imports
+correctly.
+
+**Trade-off**: Cycles are now expressible in the link layer that the tree itself
+forbids — deliberately, since "this conclusion challenges that assumption across
+branches" can legitimately point back up the tree. Only a self-link is refused
+(`error.linkSelf`).
+
+**Date**: 2026-09-29
+
 

@@ -120,6 +120,7 @@ const en: Dict = {
   'detail.unexplained': '⚠ Unexplained relation — you filed this here without saying why.',
   'detail.explain': 'Explain relationship',
   'detail.rewrite': 'rewrite',
+  'detail.relations': 'Relations',
   'detail.noChildren': 'No sub-questions yet.',
   'detail.delete.title': 'Delete this question and everything under it',
 
@@ -137,6 +138,15 @@ const en: Dict = {
   'why.save': 'Save reason',
   'why.skip': 'Skip for now',
   'why.moved': '{child} moved.',
+
+  'link.out.title': 'Links to',
+  'link.in.title': 'Linked from',
+  'link.add': 'Link to another question…',
+  'link.none': 'No cross-branch links yet.',
+  'link.reasonPlaceholder': 'Why are they related?',
+  'link.create': 'Create link',
+  'link.remove': 'Remove',
+  'link.edit': 'Edit',
 
   'search.placeholder': 'Search questions, notes and conclusions…',
   'search.hint': '↑↓ move · Enter jump · Esc close',
@@ -198,6 +208,7 @@ const en: Dict = {
   'keys.escape': 'Deselect, or close a popover',
   'keys.search': 'Open search',
   'keys.review': 'Open review',
+  'keys.linked': 'Linked',
 
   'toast.exported': 'Exported to {path}',
   'toast.exportFailed': 'Export failed: {error}',
@@ -214,6 +225,7 @@ const en: Dict = {
   'toast.domainError': 'Could not do that: {error}',
 
   'error.moveInsideSelf': 'A question cannot be moved inside itself.',
+  'error.linkSelf': 'A question cannot be linked to itself.',
   'error.importFormat': 'That file is not a ThoughtTree export.',
   'toast.orbPosition': 'Orb position saved',
 
@@ -238,6 +250,9 @@ const en: Dict = {
   'mutation.moveOne': 'Move question',
   'mutation.moveMany': 'Move {n} questions',
   'mutation.explainRelation': 'Explain relation',
+  'mutation.addLink': 'Add link',
+  'mutation.removeLink': 'Remove link',
+  'mutation.editLink': 'Edit link',
   'mutation.expandTo': 'Expand to question',
   'mutation.import': 'Import',
 }
@@ -342,6 +357,7 @@ const zh: Dict = {
   'detail.unexplained': '⚠ 关系未说明 —— 你把它放在这里，但还没说为什么。',
   'detail.explain': '说明关系',
   'detail.rewrite': '重写',
+  'detail.relations': '关联',
   'detail.noChildren': '还没有子问题。',
   'detail.delete.title': '删除这个问题及其所有子问题',
 
@@ -359,6 +375,15 @@ const zh: Dict = {
   'why.save': '保存理由',
   'why.skip': '暂时跳过',
   'why.moved': '{child} 已移动。',
+
+  'link.out.title': '指向',
+  'link.in.title': '被指向',
+  'link.add': '关联到另一个问题…',
+  'link.none': '还没有跨分支的关联。',
+  'link.reasonPlaceholder': '它们为什么相关？',
+  'link.create': '建立关联',
+  'link.remove': '删除关联',
+  'link.edit': '编辑',
 
   'search.placeholder': '搜索问题、笔记和结论…',
   'search.hint': '↑↓ 选择 · 回车跳转 · Esc 关闭',
@@ -418,6 +443,7 @@ const zh: Dict = {
   'keys.escape': '取消选中或关闭弹层',
   'keys.search': '打开搜索',
   'keys.review': '打开回顾',
+  'keys.linked': '已关联',
 
   'toast.exported': '已导出到 {path}',
   'toast.exportFailed': '导出失败：{error}',
@@ -434,6 +460,7 @@ const zh: Dict = {
   'toast.domainError': '无法完成该操作：{error}',
 
   'error.moveInsideSelf': '一个问题不能移动到它自己内部。',
+  'error.linkSelf': '不能把问题关联到它自己。',
   'error.importFormat': '该文件不是 ThoughtTree 导出文件。',
   'toast.orbPosition': '悬浮球位置已保存',
 
@@ -458,6 +485,9 @@ const zh: Dict = {
   'mutation.moveOne': '移动问题',
   'mutation.moveMany': '移动 {n} 个问题',
   'mutation.explainRelation': '说明关系',
+  'mutation.addLink': '添加关联',
+  'mutation.removeLink': '删除关联',
+  'mutation.editLink': '编辑关联',
   'mutation.expandTo': '展开到该问题',
   'mutation.import': '导入',
 }

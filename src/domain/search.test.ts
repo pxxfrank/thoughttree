@@ -11,6 +11,7 @@ function reasonEdge(from: string, to: string, reason: string): Edge {
     relation_type: 'decompose',
     reason,
     created_at: T0,
+    kind: 'parent',
   }
 }
 

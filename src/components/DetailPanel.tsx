@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { relationKey } from '../domain/relations'
+import { LINK_RELATION_TYPES, relationKey } from '../domain/relations'
 import { indexChildren } from '../domain/tree'
-import type { Node, Status } from '../domain/types'
+import type { Edge, Node, Status } from '../domain/types'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
-import { useEdgeFor } from '../state/selectors'
+import { useEdgeFor, useLinksFor } from '../state/selectors'
 
 const STATUSES: { value: Status; key: string }[] = [
   { value: 'open', key: 'status.open' },
@@ -52,12 +52,38 @@ function AutoText({
   )
 }
 
+/** One cross-branch link, from this question's point of view. */
+function LinkRow({ link, peerId }: { link: Edge; peerId: string }) {
+  const store = useStore()
+  const state = useAppState()
+  const { t } = useI18n()
+  const peer = state.nodes[peerId]
+  if (!peer) return null
+  return (
+    <div className="link-row">
+      <button className="link-peer" title={peer.text} onClick={() => store.select(peerId)}>
+        {peer.text}
+      </button>
+      {link.reason && <div className="link-reason">{link.reason}</div>}
+      <span className="link-actions">
+        <button className="btn ghost" title={t('link.edit')} onClick={() => store.openLinkEditor(link)}>
+          {t('link.edit')}
+        </button>
+        <button className="btn ghost" title={t('link.remove')} onClick={() => store.removeLink(link)}>
+          ✕
+        </button>
+      </span>
+    </div>
+  )
+}
+
 export function DetailPanel() {
   const store = useStore()
   const state = useAppState()
   const { t } = useI18n()
   const node = state.selectedId ? state.nodes[state.selectedId] : undefined
   const edge = useEdgeFor(state.selectedId)
+  const links = useLinksFor(state.selectedId)
 
   if (!node) {
     return (
@@ -161,6 +187,36 @@ export function DetailPanel() {
               </button>
             </div>
           )}
+        </Field>
+
+        <Field label={t('detail.relations')}>
+          {links.outgoing.length === 0 && links.incoming.length === 0 ? (
+            <div className="hint">{t('link.none')}</div>
+          ) : (
+            <div className="link-groups">
+              {LINK_RELATION_TYPES.map((type) => {
+                const out = links.outgoing.filter((link) => link.relation_type === type)
+                const incoming = links.incoming.filter((link) => link.relation_type === type)
+                if (out.length === 0 && incoming.length === 0) return null
+                return (
+                  <div key={type} className="link-group">
+                    <div className="link-group-title">{t(relationKey(type))}</div>
+                    {out.length > 0 && <div className="link-sub">{t('link.out.title')}</div>}
+                    {out.map((link) => (
+                      <LinkRow key={link.id} link={link} peerId={link.to_node} />
+                    ))}
+                    {incoming.length > 0 && <div className="link-sub">{t('link.in.title')}</div>}
+                    {incoming.map((link) => (
+                      <LinkRow key={link.id} link={link} peerId={link.from_node} />
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <button className="btn" style={{ marginTop: 6 }} onClick={() => store.startLink(node.id)}>
+            {t('link.add')}
+          </button>
         </Field>
 
         <Field label={t('field.notes')}>

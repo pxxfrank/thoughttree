@@ -3,11 +3,14 @@ import { applyChanges, danglingEdges, emptyEntityState, indexById, toSnapshot } 
 import {
   DomainError,
   addChildMutation,
+  addLinkMutation,
   captureMutation,
+  deleteLinkMutation,
   deleteMutation,
   expandAncestorsMutation,
   importMutation,
   placeMutation,
+  setLinkMutation,
   setNoteMutation,
   setPriorityMutation,
   setRelationMutation,
@@ -44,6 +47,7 @@ const sampleEdge: Edge = {
   relation_type: 'decompose',
   reason: null,
   created_at: T0,
+  kind: 'parent',
 }
 
 describe('capture', () => {
@@ -164,8 +168,8 @@ describe('place', () => {
   const base = ctx(
     [n('root'), n('a', { parent_id: 'root', position: 0 }), n('b', { parent_id: 'root', position: 1000 })],
     [
-      { id: 'ea', from_node: 'root', to_node: 'a', relation_type: 'decompose', reason: 'because A', created_at: T0 },
-      { id: 'eb', from_node: 'root', to_node: 'b', relation_type: 'decompose', reason: 'because B', created_at: T0 },
+      { id: 'ea', from_node: 'root', to_node: 'a', relation_type: 'decompose', reason: 'because A', created_at: T0, kind: 'parent' },
+      { id: 'eb', from_node: 'root', to_node: 'b', relation_type: 'decompose', reason: 'because B', created_at: T0, kind: 'parent' },
     ],
   )
 
@@ -182,7 +186,7 @@ describe('place', () => {
       n('root'),
       n('other'),
       n('a', { parent_id: 'root', position: 0 }),
-    ], [{ id: 'ea', from_node: 'root', to_node: 'a', relation_type: 'answer', reason: 'old reason', created_at: T0 }])
+    ], [{ id: 'ea', from_node: 'root', to_node: 'a', relation_type: 'answer', reason: 'old reason', created_at: T0, kind: 'parent' }])
     const m = placeMutation(context, ['a'], 'other', ['a'], T0) as Mutation
     const newEdge = m.forward.upsert_edges[0]
     expect(newEdge.from_node).toBe('other')
@@ -252,6 +256,131 @@ describe('relation', () => {
   })
 })
 
+describe('cross-branch links', () => {
+  it('adds a link with kind "link" and undo removes it', () => {
+    const context = ctx([n('a'), n('b')])
+    const m = addLinkMutation(context, 'a', 'b', 'challenge', '  it refutes it  ', T0) as Mutation
+    expect(m.labelKey).toBe('mutation.addLink')
+    const link = m.forward.upsert_edges[0]
+    expect(link.kind).toBe('link')
+    expect(link.relation_type).toBe('challenge')
+    expect(link.reason).toBe('it refutes it')
+
+    const after = run(context, m)
+    expect(after.edges).toHaveLength(1)
+    expect(after.edges[0].kind).toBe('link')
+
+    const reverted = undo(after, m)
+    expect(reverted.edges).toHaveLength(0)
+  })
+
+  it('returns null when an identical (from, to, type) link already exists', () => {
+    const existing: Edge = {
+      id: 'l1',
+      from_node: 'a',
+      to_node: 'b',
+      relation_type: 'support',
+      reason: null,
+      created_at: T0,
+      kind: 'link',
+    }
+    expect(addLinkMutation(ctx([n('a'), n('b')], [existing]), 'a', 'b', 'support', 'x')).toBeNull()
+    // A different relation type is a different link.
+    expect(addLinkMutation(ctx([n('a'), n('b')], [existing]), 'a', 'b', 'challenge', 'x')).not.toBeNull()
+  })
+
+  it('refuses a self-link', () => {
+    const attempt = () => addLinkMutation(ctx([n('a')]), 'a', 'a', 'support', '')
+    expect(attempt).toThrow(DomainError)
+    expect(attempt).toThrow('error.linkSelf')
+  })
+
+  it('allows a link that forms a cycle the tree cannot', () => {
+    // a is the parent of b; b links back to a. The tree forbids that cycle,
+    // the link layer does not.
+    const context = ctx([n('a'), n('b', { parent_id: 'a' })])
+    const m = addLinkMutation(context, 'b', 'a', 'challenge', 'same problem, other end', T0) as Mutation
+    const after = run(context, m)
+    expect(after.edges).toHaveLength(1)
+    expect(after.edges[0].kind).toBe('link')
+  })
+
+  it('re-types and re-reasons a link, and undo restores it', () => {
+    const link: Edge = {
+      id: 'l1',
+      from_node: 'a',
+      to_node: 'b',
+      relation_type: 'support',
+      reason: 'old',
+      created_at: T0,
+      kind: 'link',
+    }
+    const m = setLinkMutation(link, 'depends_on', '  new reason  ') as Mutation
+    expect(m.labelKey).toBe('mutation.editLink')
+    expect(m.forward.upsert_edges[0].relation_type).toBe('depends_on')
+    expect(m.forward.upsert_edges[0].reason).toBe('new reason')
+    const reverted = undo(run(ctx([n('a'), n('b')], [link]), m), m)
+    expect(reverted.edges[0].relation_type).toBe('support')
+  })
+
+  it('skips writing when a link edit changes nothing', () => {
+    const link: Edge = {
+      id: 'l1',
+      from_node: 'a',
+      to_node: 'b',
+      relation_type: 'support',
+      reason: 'why',
+      created_at: T0,
+      kind: 'link',
+    }
+    expect(setLinkMutation(link, 'support', 'why')).toBeNull()
+  })
+
+  it('deletes a link, and undo brings it back', () => {
+    const link: Edge = {
+      id: 'l1',
+      from_node: 'a',
+      to_node: 'b',
+      relation_type: 'support',
+      reason: null,
+      created_at: T0,
+      kind: 'link',
+    }
+    const context = ctx([n('a'), n('b')], [link])
+    const m = deleteLinkMutation(link)
+    expect(m.labelKey).toBe('mutation.removeLink')
+    expect(m.forward.delete_edges).toEqual(['l1'])
+
+    const after = run(context, m)
+    expect(after.edges).toHaveLength(0)
+
+    const reverted = undo(after, m)
+    expect(reverted.edges).toHaveLength(1)
+    expect(reverted.edges[0].id).toBe('l1')
+  })
+
+  it('deleteMutation removes a node together with its links', () => {
+    const link: Edge = {
+      id: 'l1',
+      from_node: 'a',
+      to_node: 'b',
+      relation_type: 'challenge',
+      reason: null,
+      created_at: T0,
+      kind: 'link',
+    }
+    const context = ctx([n('a'), n('b')], [link])
+    const m = deleteMutation(context, ['b']) as Mutation
+    const after = run(context, m)
+    expect(after.nodes.map((x) => x.id)).toEqual(['a'])
+    expect(after.edges).toHaveLength(0)
+
+    const reverted = undo(after, m)
+    expect(reverted.edges).toHaveLength(1)
+    expect(reverted.edges[0].kind).toBe('link')
+  })
+})
+
 describe('expand ancestors', () => {
   it('expands only the ancestors that are collapsed', () => {
     const context = ctx([
@@ -314,6 +443,7 @@ describe('import', () => {
     relation_type: 'decompose',
     reason: null,
     created_at: T0,
+    kind: 'parent',
   })
 
   it('merges: new ids are added, existing ids overwritten, others untouched', () => {

@@ -28,8 +28,18 @@ export interface Node {
 }
 
 /**
- * An edge records *why* one node sits under another. `from_node` is the parent,
- * `to_node` the child. A node has at most one incoming edge.
+ * What an edge means. `'parent'` is the tree link (from_node is the parent,
+ * to_node the child, and a child has at most one). `'link'` is a cross-branch
+ * relation: from_node is the subject, to_node the object, and a node may have
+ * any number of them in either direction.
+ */
+export type EdgeKind = 'parent' | 'link'
+
+/**
+ * An edge records *why* one node relates to another. For a `'parent'` edge
+ * `from_node` is the parent and `to_node` the child, and a node has at most one
+ * incoming parent edge. A `'link'` edge is a cross-cutting relation between any
+ * two nodes and is not bound by that invariant.
  */
 export interface Edge {
   id: string
@@ -38,6 +48,7 @@ export interface Edge {
   relation_type: RelationType
   reason: string | null
   created_at: number
+  kind: EdgeKind
 }
 
 /** The single write primitive: everything is an atomic set of upserts + deletes. */

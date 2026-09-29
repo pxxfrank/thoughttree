@@ -4,12 +4,15 @@ import { filterTree, inboxOrder, focusList, makeVisibility } from '../domain/foc
 import {
   DomainError,
   addChildMutation,
+  addLinkMutation,
   captureMutation,
+  deleteLinkMutation,
   deleteMutation,
   expandAncestorsMutation,
   importMutation,
   placeMutation,
   setConclusionMutation,
+  setLinkMutation,
   setNoteMutation,
   setPriorityMutation,
   setRelationMutation,
@@ -19,7 +22,7 @@ import {
   type Mutation,
   type MutationContext,
 } from '../domain/mutations'
-import { edgeForNode, unexplainedNodeIds } from '../domain/relations'
+import { edgeForNode, linkedNodeIds, linksForNode, unexplainedNodeIds } from '../domain/relations'
 import { buildForest, indexChildren, orderWithMany } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
 import type { Changes, Edge, Node, Priority, RelationType, Snapshot, Status } from '../domain/types'
@@ -35,6 +38,14 @@ export interface Toast {
 }
 
 export type CreateTarget = { parentId: string | null; index: number } | null
+
+/** The open link editor: which two nodes, and the existing link when editing. */
+export interface LinkDraft {
+  fromId: string
+  toId: string
+  /** The existing link's id when editing, `null` when creating a new one. */
+  linkId: string | null
+}
 
 export interface AppState extends EntityState {
   loaded: boolean
@@ -54,6 +65,10 @@ export interface AppState extends EntityState {
   showArchived: boolean
   onlyUnexplained: boolean
   whyHereFor: string | null
+  /** When set, the search palette is picking a link target for this node. */
+  linkingFrom: string | null
+  /** The open create/edit link popover, or null. */
+  linkDraft: LinkDraft | null
   toast: Toast | null
   saveError: string | null
   undoLabelKey: string | null
@@ -88,6 +103,8 @@ function initialState(): AppState {
     showArchived: false,
     onlyUnexplained: false,
     whyHereFor: null,
+    linkingFrom: null,
+    linkDraft: null,
     toast: null,
     saveError: null,
     undoLabelKey: null,
@@ -437,6 +454,56 @@ export class AppStore {
     this.patch({ whyHereFor: nodeId, selectedId: nodeId })
   }
 
+  // --- cross-branch links -------------------------------------------------
+
+  /** Opens the search palette in "pick a link target" mode for `nodeId`. */
+  startLink(nodeId: string): void {
+    this.patch({ linkingFrom: nodeId, searching: false, linkDraft: null, selectedId: nodeId })
+  }
+
+  cancelLink(): void {
+    this.patch({ linkingFrom: null })
+  }
+
+  /** A target was chosen: close the picker and open the link editor. */
+  pickLinkTarget(toId: string): void {
+    const fromId = this.state.linkingFrom
+    if (!fromId) return
+    this.patch({ linkingFrom: null, linkDraft: { fromId, toId, linkId: null } })
+  }
+
+  /** Opens the link editor for an existing link, to re-type or re-reason it. */
+  openLinkEditor(link: Edge): void {
+    this.patch({
+      linkingFrom: null,
+      linkDraft: { fromId: link.from_node, toId: link.to_node, linkId: link.id },
+    })
+  }
+
+  closeLinkEditor(): void {
+    this.patch({ linkDraft: null })
+  }
+
+  addLink(fromId: string, toId: string, relationType: RelationType, reason: string): void {
+    if (!this.state.nodes[fromId] || !this.state.nodes[toId]) return
+    try {
+      this.run(addLinkMutation(this.ctx(), fromId, toId, relationType, reason))
+    } catch (error) {
+      this.fail(error)
+    }
+    this.patch({ linkDraft: null })
+  }
+
+  updateLink(link: Edge, relationType: RelationType, reason: string): void {
+    this.run(setLinkMutation(link, relationType, reason))
+    this.patch({ linkDraft: null })
+  }
+
+  removeLink(link: Edge): void {
+    this.run(deleteLinkMutation(link))
+    this.patch({ linkDraft: null })
+  }
+
   // --- selection & UI -----------------------------------------------------
 
   select(id: string | null): void {
@@ -560,6 +627,16 @@ export class AppStore {
 
   edgeFor(nodeId: string): Edge | undefined {
     return edgeForNode(this.allEdges(), nodeId)
+  }
+
+  /** A node's cross-branch links, split by direction. */
+  linksFor(nodeId: string): { outgoing: Edge[]; incoming: Edge[] } {
+    return linksForNode(this.allEdges(), nodeId)
+  }
+
+  /** Every node id that takes part in a link, for the tree-row marker. */
+  linkedIds(): Set<string> {
+    return linkedNodeIds(this.allEdges())
   }
 
   // --- export / settings --------------------------------------------------

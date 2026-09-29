@@ -491,3 +491,65 @@ describe('import and restore', () => {
     await expect(store.readImport('bad.json')).rejects.toThrow('error.importFormat')
   })
 })
+
+describe('cross-branch links', () => {
+  it('adds a link that surfaces via linksFor/linkedIds, and undo removes it', async () => {
+    const { store, persistence } = await ready()
+    const a = store.addChild(null, 0, 'A') as string
+    const b = store.addChild(null, 1, 'B') as string
+
+    store.addLink(a, b, 'challenge', 'it refutes B')
+
+    // `linksFor` is what `useLinksFor` calls.
+    const outgoing = store.linksFor(a).outgoing
+    expect(outgoing).toHaveLength(1)
+    expect(outgoing[0].kind).toBe('link')
+    expect(outgoing[0].to_node).toBe(b)
+    expect(outgoing[0].reason).toBe('it refutes B')
+    // The mirror view: b sees it as incoming.
+    expect(store.linksFor(b).incoming.map((l) => l.from_node)).toEqual([a])
+    // `linkedIds` is what `useLinkedIds` calls; both endpoints are marked.
+    expect(store.linkedIds().has(a)).toBe(true)
+    expect(store.linkedIds().has(b)).toBe(true)
+
+    await vi.waitFor(() => expect(persistence.applied.length).toBeGreaterThan(0))
+
+    store.undo()
+    expect(store.linksFor(a).outgoing).toHaveLength(0)
+    expect(store.linkedIds().has(a)).toBe(false)
+    expect(store.linkedIds().has(b)).toBe(false)
+  })
+
+  it('a link into a child does not disturb that child\'s parent edge', async () => {
+    const { store } = await ready()
+    const root = store.addChild(null, 0, 'root') as string
+    const child = store.addChild(root, 0, 'child') as string
+    const other = store.addChild(null, 1, 'other') as string
+
+    store.addLink(other, child, 'support', 'supports it')
+
+    expect(store.edgeFor(child)?.from_node).toBe(root)
+    expect(store.linksFor(child).incoming).toHaveLength(1)
+  })
+
+  it('rejects a self-link with a toast and writes nothing', async () => {
+    const { store } = await ready()
+    const a = store.addChild(null, 0, 'A') as string
+    store.addLink(a, a, 'support', '')
+    expect(store.linksFor(a).outgoing).toHaveLength(0)
+    expect(store.getState().toast?.key).toBe('error.linkSelf')
+  })
+
+  it('removes a link through the store', async () => {
+    const { store, persistence } = await ready()
+    const a = store.addChild(null, 0, 'A') as string
+    const b = store.addChild(null, 1, 'B') as string
+    store.addLink(a, b, 'depends_on', 'x')
+    const link = store.linksFor(a).outgoing[0]
+
+    store.removeLink(link)
+
+    expect(store.linksFor(a).outgoing).toHaveLength(0)
+    await vi.waitFor(() => expect(persistence.applied.length).toBeGreaterThanOrEqual(2))
+  })
+})

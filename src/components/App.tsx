@@ -11,6 +11,7 @@ import { DndProvider, type DragPayload, type DropTarget } from './dnd'
 import { FocusPanel } from './FocusPanel'
 import { Header } from './Header'
 import { InboxPanel } from './InboxPanel'
+import { LinkEditor } from './LinkEditor'
 import { ReviewPanel } from './ReviewPanel'
 import { SearchPalette } from './SearchPalette'
 import { Toast } from './Toast'
@@ -138,7 +139,8 @@ export function App() {
         <CaptureBar />
       </div>
       <WhyHerePopover />
-      <SearchPalette />
+      <SearchPalette onPick={state.linkingFrom ? store.pickLinkTarget : undefined} />
+      <LinkEditor />
       <Toast />
     </DndProvider>
   )

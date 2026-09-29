@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const SCHEMA_VERSION: i32 = 1;
+const SCHEMA_VERSION: i32 = 2;
 
 const SCHEMA_V1: &str = r#"
 CREATE TABLE IF NOT EXISTS nodes (
@@ -42,6 +42,23 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 "#;
 
+/// v2 introduces the `kind` discriminator on `edges`. A 'parent' edge is the
+/// tree link, of which a child has at most one; a 'link' edge is a cross-branch
+/// relation and is unconstrained. What used to be a blanket unique index on
+/// `to_node` becomes a *partial* index scoped to parent edges, which is exactly
+/// what the discriminator is for.
+///
+/// It runs as a separate step so a database created by v1 takes the ALTER path
+/// rather than being recreated.
+const SCHEMA_V2: &str = r#"
+ALTER TABLE edges ADD COLUMN kind TEXT NOT NULL DEFAULT 'parent';
+DROP INDEX IF EXISTS idx_edges_to;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_edges_to   ON edges(to_node) WHERE kind = 'parent';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_edges_link ON edges(from_node, to_node, relation_type) WHERE kind = 'link';
+CREATE INDEX IF NOT EXISTS idx_edges_kind_from ON edges(kind, from_node);
+CREATE INDEX IF NOT EXISTS idx_edges_kind_to   ON edges(kind, to_node);
+"#;
+
 pub fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -72,6 +89,9 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
     let version: i32 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
     if version < 1 {
         conn.execute_batch(SCHEMA_V1)?;
+    }
+    if version < 2 {
+        conn.execute_batch(SCHEMA_V2)?;
     }
     if version < SCHEMA_VERSION {
         conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
@@ -107,7 +127,7 @@ pub fn load(conn: &Connection) -> rusqlite::Result<Snapshot> {
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let mut edge_stmt = conn.prepare(
-        "SELECT id, from_node, to_node, relation_type, reason, created_at FROM edges",
+        "SELECT id, from_node, to_node, relation_type, reason, created_at, kind FROM edges",
     )?;
     let edges = edge_stmt
         .query_map([], |row| {
@@ -118,6 +138,7 @@ pub fn load(conn: &Connection) -> rusqlite::Result<Snapshot> {
                 relation_type: row.get(3)?,
                 reason: row.get(4)?,
                 created_at: row.get(5)?,
+                kind: row.get(6)?,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -144,18 +165,21 @@ pub fn apply(conn: &mut Connection, changes: &Changes) -> rusqlite::Result<()> {
             }
         }
         {
-            // A node has at most one incoming edge; drop any stale edge for the
-            // same child before writing the new one.
+            // A node has at most one incoming *parent* edge; drop any stale
+            // parent edge for the same child before writing the new one. A link
+            // is exempt, so it never displaces a parent edge that happens to
+            // share its `to_node`.
             let mut clear_edge =
-                tx.prepare("DELETE FROM edges WHERE to_node = ?1 AND id <> ?2")?;
+                tx.prepare("DELETE FROM edges WHERE to_node = ?1 AND id <> ?2 AND kind = 'parent'")?;
             let mut up_edge = tx.prepare(
-                "INSERT INTO edges (id, from_node, to_node, relation_type, reason, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                "INSERT INTO edges (id, from_node, to_node, relation_type, reason, created_at, kind)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
                  ON CONFLICT(id) DO UPDATE SET
                    from_node = excluded.from_node,
                    to_node = excluded.to_node,
                    relation_type = excluded.relation_type,
-                   reason = excluded.reason",
+                   reason = excluded.reason,
+                   kind = excluded.kind",
             )?;
             for e in &changes.upsert_edges {
                 clear_edge.execute(params![e.to_node, e.id])?;
@@ -165,7 +189,8 @@ pub fn apply(conn: &mut Connection, changes: &Changes) -> rusqlite::Result<()> {
                     e.to_node,
                     e.relation_type,
                     e.reason,
-                    e.created_at
+                    e.created_at,
+                    e.kind
                 ])?;
             }
         }
@@ -383,6 +408,19 @@ mod tests {
             relation_type: "decompose".to_string(),
             reason: None,
             created_at: 1,
+            kind: "parent".to_string(),
+        }
+    }
+
+    fn link(id: &str, from: &str, to: &str, relation_type: &str) -> Edge {
+        Edge {
+            id: id.to_string(),
+            from_node: from.to_string(),
+            to_node: to.to_string(),
+            relation_type: relation_type.to_string(),
+            reason: None,
+            created_at: 1,
+            kind: "link".to_string(),
         }
     }
 
@@ -482,6 +520,189 @@ mod tests {
         assert_eq!(snap.edges.len(), 2);
         let a_edge = snap.edges.iter().find(|e| e.to_node == "a").unwrap();
         assert_eq!(a_edge.from_node, "b");
+    }
+
+    // --- Feature 3: cross-branch links ----------------------------------
+
+    #[test]
+    fn link_round_trips_its_kind() {
+        let mut conn = open_in_memory().unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![node("a", None, false), node("b", None, false)],
+                upsert_edges: vec![link("l1", "a", "b", "challenge")],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let snap = load(&conn).unwrap();
+        assert_eq!(snap.edges.len(), 1);
+        assert_eq!(snap.edges[0].kind, "link");
+        assert_eq!(snap.edges[0].relation_type, "challenge");
+    }
+
+    #[test]
+    fn two_parent_edges_for_one_child_collapse_to_one() {
+        let mut conn = open_in_memory().unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![
+                    node("a", None, false),
+                    node("c", None, false),
+                    node("b", None, false),
+                ],
+                upsert_edges: vec![edge("e1", "a", "b")],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        // A second parent edge for the same child displaces the first.
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_edges: vec![edge("e2", "c", "b")],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let snap = load(&conn).unwrap();
+        let into_b: Vec<_> = snap.edges.iter().filter(|e| e.to_node == "b").collect();
+        assert_eq!(into_b.len(), 1);
+        assert_eq!(into_b[0].from_node, "c");
+    }
+
+    #[test]
+    fn partial_index_allows_many_links_into_one_node() {
+        let mut conn = open_in_memory().unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![
+                    node("a", None, false),
+                    node("b", None, false),
+                    node("c", None, false),
+                    node("d", None, false),
+                ],
+                upsert_edges: vec![
+                    link("l1", "a", "d", "support"),
+                    link("l2", "b", "d", "challenge"),
+                    link("l3", "c", "d", "depends_on"),
+                ],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let snap = load(&conn).unwrap();
+        let into_d: Vec<_> = snap.edges.iter().filter(|e| e.to_node == "d").collect();
+        assert_eq!(into_d.len(), 3);
+        assert!(into_d.iter().all(|e| e.kind == "link"));
+    }
+
+    #[test]
+    fn duplicate_link_is_rejected() {
+        let mut conn = open_in_memory().unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![node("a", None, false), node("b", None, false)],
+                upsert_edges: vec![link("l1", "a", "b", "support")],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        // Same (from, to, type) with a different id violates the partial unique
+        // index; a plain `apply` error means the transaction rolled back.
+        let result = apply(
+            &mut conn,
+            &Changes {
+                upsert_edges: vec![link("l2", "a", "b", "support")],
+                ..Default::default()
+            },
+        );
+        assert!(result.is_err());
+        let snap = load(&conn).unwrap();
+        assert_eq!(snap.edges.len(), 1);
+    }
+
+    #[test]
+    fn deleting_a_node_cascades_to_its_links() {
+        let mut conn = open_in_memory().unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![node("a", None, false), node("b", None, false)],
+                upsert_edges: vec![link("l1", "a", "b", "challenge")],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                delete_nodes: vec!["b".to_string()],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let snap = load(&conn).unwrap();
+        assert_eq!(snap.nodes.len(), 1);
+        assert!(snap.edges.is_empty());
+    }
+
+    #[test]
+    fn v1_database_migrates_to_v2_and_keeps_parent_edges() {
+        let dir = temp_dir("migrate-v1");
+        let db_path = dir.join("v1.db");
+
+        // Build a database that only knows schema v1: no `kind` column, a
+        // blanket unique index on `to_node`, and `user_version = 1`.
+        {
+            let conn = Connection::open(&db_path).unwrap();
+            conn.execute_batch(SCHEMA_V1).unwrap();
+            conn.pragma_update(None, "user_version", 1).unwrap();
+            for id in ["a", "b"] {
+                conn.execute(
+                    "INSERT INTO nodes (id, text, created_at, updated_at) VALUES (?1, ?2, 1, 1)",
+                    params![id, format!("node {id}")],
+                )
+                .unwrap();
+            }
+            conn.execute(
+                "INSERT INTO edges (id, from_node, to_node, relation_type, reason, created_at)
+                 VALUES ('e1', 'a', 'b', 'decompose', NULL, 1)",
+                [],
+            )
+            .unwrap();
+        }
+
+        // Opening runs the migration.
+        let conn = open(&db_path).unwrap();
+        let version: i32 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(version, 2);
+
+        let snap = load(&conn).unwrap();
+        assert_eq!(snap.edges.len(), 1);
+        assert_eq!(snap.edges[0].id, "e1");
+        assert_eq!(snap.edges[0].kind, "parent");
+
+        // The migrated schema accepts links: several into one node, all 'link'.
+        drop(conn);
+        let mut conn = open(&db_path).unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_edges: vec![link("l1", "b", "a", "support")],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let snap = load(&conn).unwrap();
+        assert_eq!(snap.edges.len(), 2);
+        assert_eq!(snap.edges.iter().filter(|e| e.kind == "link").count(), 1);
     }
 
     #[test]

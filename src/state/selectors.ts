@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { makeVisibility, filterTree, inboxOrder, focusList } from '../domain/focus'
-import { unexplainedNodeIds, edgeForNode } from '../domain/relations'
+import { unexplainedNodeIds, edgeForNode, linksForNode, linkedNodeIds } from '../domain/relations'
 import { reviewGroups, type ReviewGroup } from '../domain/review'
 import { buildForest, flatten, pathText } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
-import type { Node } from '../domain/types'
+import type { Edge, Node } from '../domain/types'
 import { useAppState } from './context'
 
 export function useUnexplained(): Set<string> {
@@ -92,6 +92,24 @@ export function useEdgeFor(nodeId: string | null) {
     () => (nodeId ? edgeForNode(Object.values(edges), nodeId) : undefined),
     [edges, nodeId],
   )
+}
+
+/** A node's cross-branch links, split into outgoing and incoming. */
+export function useLinksFor(nodeId: string | null): { outgoing: Edge[]; incoming: Edge[] } {
+  const { edges } = useAppState()
+  return useMemo(
+    () =>
+      nodeId
+        ? linksForNode(Object.values(edges), nodeId)
+        : { outgoing: [], incoming: [] },
+    [edges, nodeId],
+  )
+}
+
+/** Every node id that takes part in at least one link, for the tree-row marker. */
+export function useLinkedIds(): Set<string> {
+  const { edges } = useAppState()
+  return useMemo(() => linkedNodeIds(Object.values(edges)), [edges])
 }
 
 export function usePath(nodeId: string | null): string {

@@ -1,4 +1,4 @@
-import { edgeForNode } from './relations'
+import { edgeForNode, edgeKind } from './relations'
 import { canReparent, descendantIds, indexChildren, orderWithMany, ancestorsOf } from './tree'
 import { applyChanges, danglingEdges, indexById } from './changes'
 import type { EntityState } from './changes'
@@ -273,6 +273,7 @@ export function addChildMutation(
       relation_type: 'decompose',
       reason: null,
       created_at: now,
+      kind: 'parent',
     })
   }
   return { labelKey: 'mutation.addQuestion', forward, backward }
@@ -331,6 +332,7 @@ export function placeMutation(
       relation_type: 'decompose',
       reason: null,
       created_at: previousEdge?.created_at ?? now,
+      kind: 'parent',
     }
     forward.upsert_edges.push(nextEdge)
     if (previousEdge) backward.upsert_edges.push(previousEdge)
@@ -361,6 +363,76 @@ export function setRelationMutation(
     labelKey: 'mutation.explainRelation',
     forward: { ...emptyChanges(), upsert_edges: [next] },
     backward: { ...emptyChanges(), upsert_edges: [edge] },
+  }
+}
+
+/**
+ * Adds a cross-branch link: a typed, reasoned relation from one node to another
+ * that is independent of the tree. It is not bound by the one-parent invariant,
+ * so a node may hold any number of links — and a link is allowed to form a cycle
+ * the tree itself cannot. Only a self-link is refused.
+ */
+export function addLinkMutation(
+  ctx: MutationContext,
+  fromId: string,
+  toId: string,
+  relationType: RelationType,
+  reason: string,
+  now = nowMs(),
+): Mutation | null {
+  if (fromId === toId) throw new DomainError('error.linkSelf')
+  const duplicate = ctx.edges.some(
+    (edge) =>
+      edgeKind(edge) === 'link' &&
+      edge.from_node === fromId &&
+      edge.to_node === toId &&
+      edge.relation_type === relationType,
+  )
+  if (duplicate) return null
+
+  const trimmed = reason.trim()
+  const link: Edge = {
+    id: newId(),
+    from_node: fromId,
+    to_node: toId,
+    relation_type: relationType,
+    reason: trimmed.length ? trimmed : null,
+    created_at: now,
+    kind: 'link',
+  }
+  return {
+    labelKey: 'mutation.addLink',
+    forward: { ...emptyChanges(), upsert_edges: [link] },
+    backward: { ...emptyChanges(), delete_edges: [link.id] },
+  }
+}
+
+/** Re-types or re-reasons an existing link; mirrors `setRelationMutation`. */
+export function setLinkMutation(
+  link: Edge,
+  relationType: RelationType,
+  reason: string,
+): Mutation | null {
+  const trimmed = reason.trim()
+  const next: Edge = {
+    ...link,
+    relation_type: relationType,
+    reason: trimmed.length ? trimmed : null,
+  }
+  if (next.relation_type === link.relation_type && next.reason === link.reason) return null
+  return {
+    labelKey: 'mutation.editLink',
+    forward: { ...emptyChanges(), upsert_edges: [next] },
+    backward: { ...emptyChanges(), upsert_edges: [link] },
+  }
+}
+
+/** Removes a link; undo re-creates it from the same row. */
+export function deleteLinkMutation(link: Edge): Mutation {
+  return {
+    labelKey: 'mutation.removeLink',
+    forward: { ...emptyChanges(), delete_edges: [link.id] },
+    backward: { ...emptyChanges(), upsert_edges: [link] },
   }
 }
 

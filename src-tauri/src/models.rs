@@ -20,9 +20,14 @@ pub struct Node {
     pub source_title: Option<String>,
 }
 
-/// An edge records *why* one node sits under another. `from_node` is the parent,
-/// `to_node` is the child. A node has at most one incoming edge (one parent),
-/// so `to_node` is unique.
+/// An edge records *why* one node relates to another. `kind` discriminates the
+/// two meanings: `'parent'` is the tree link (`from_node` is the parent,
+/// `to_node` the child, and a node has at most one incoming parent edge) while
+/// `'link'` is a cross-cutting relation between any two nodes, unconstrained in
+/// number.
+///
+/// `kind` defaults to `'parent'` on the way in, so an export written before the
+/// feature existed still imports: back then every edge *was* a parent edge.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Edge {
     pub id: String,
@@ -31,6 +36,12 @@ pub struct Edge {
     pub relation_type: String,
     pub reason: Option<String>,
     pub created_at: i64,
+    #[serde(default = "default_kind")]
+    pub kind: String,
+}
+
+fn default_kind() -> String {
+    "parent".to_string()
 }
 
 #[derive(Debug, Serialize)]

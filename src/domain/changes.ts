@@ -1,3 +1,4 @@
+import { edgeKind } from './relations'
 import type { Changes, Edge, Node, Snapshot } from './types'
 
 export interface EntityState {
@@ -33,8 +34,9 @@ export function isEmptyChanges(changes: Changes): boolean {
 /**
  * The single reducer for the whole app. It mirrors the SQLite side exactly:
  * deleting a node cascades to its edges, and a node can only ever have one
- * incoming edge. Local state and the database therefore never drift, and the
- * same changeset can be replayed in any other window.
+ * incoming *parent* edge. Cross-branch links are exempt from that rule, so a
+ * node may carry any number of them. Local state and the database therefore
+ * never drift, and the same changeset can be replayed in any other window.
  */
 export function applyChanges(state: EntityState, changes: Changes): EntityState {
   let nodes = state.nodes
@@ -63,8 +65,15 @@ export function applyChanges(state: EntityState, changes: Changes): EntityState 
   if (changes.upsert_edges.length) {
     edges = { ...edges }
     for (const edge of changes.upsert_edges) {
-      for (const [id, existing] of Object.entries(edges)) {
-        if (existing.to_node === edge.to_node && id !== edge.id) delete edges[id]
+      // A node has at most one incoming *parent* edge, so a new parent edge
+      // displaces the child's previous one. A link is exempt: it must never
+      // delete a parent edge that happens to share its `to_node`.
+      if (edgeKind(edge) === 'parent') {
+        for (const [id, existing] of Object.entries(edges)) {
+          if (edgeKind(existing) === 'parent' && existing.to_node === edge.to_node && id !== edge.id) {
+            delete edges[id]
+          }
+        }
       }
       edges[edge.id] = edge
     }

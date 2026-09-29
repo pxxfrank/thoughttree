@@ -77,7 +77,7 @@ fn snapshot_json(state: &State<'_, AppDb>, pretty: bool) -> Result<String, Strin
         let payload = ExportFile {
             app: "ThoughtTree".to_string(),
             format: EXPORT_FORMAT.to_string(),
-            version: 1,
+            version: 2,
             exported_at: db::now_ms(),
             nodes: snapshot.nodes,
             edges: snapshot.edges,

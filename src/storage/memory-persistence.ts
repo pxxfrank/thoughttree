@@ -1,3 +1,4 @@
+import { edgeKind } from '../domain/relations'
 import type { Changes, Snapshot } from '../domain/types'
 import type { Persistence } from './persistence'
 
@@ -36,8 +37,14 @@ export class MemoryPersistence implements Persistence {
     for (const id of changes.delete_edges) edges.delete(id)
     for (const node of changes.upsert_nodes) nodes.set(node.id, node)
     for (const edge of changes.upsert_edges) {
-      for (const [edgeId, existing] of edges) {
-        if (existing.to_node === edge.to_node && edgeId !== edge.id) edges.delete(edgeId)
+      // Same invariant as the reducer: only a new *parent* edge displaces the
+      // child's previous parent edge, never a cross-branch link.
+      if (edgeKind(edge) === 'parent') {
+        for (const [edgeId, existing] of edges) {
+          if (edgeKind(existing) === 'parent' && existing.to_node === edge.to_node && edgeId !== edge.id) {
+            edges.delete(edgeId)
+          }
+        }
       }
       edges.set(edge.id, edge)
     }

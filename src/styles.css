@@ -467,6 +467,13 @@ textarea {
   opacity: 0.85;
 }
 
+.link-mark {
+  flex: none;
+  font-size: 10px;
+  color: var(--accent-text);
+  opacity: 0.9;
+}
+
 .row-actions {
   display: none;
   align-items: center;
@@ -817,6 +824,67 @@ textarea {
 }
 .child-row.later .label {
   color: var(--later);
+}
+
+/* ---------- cross-branch links ---------- */
+
+.link-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.link-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 3px;
+}
+
+.link-sub {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 4px 0 2px;
+}
+
+.link-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 3px 5px;
+  border-radius: 4px;
+}
+.link-row:hover {
+  background: var(--panel-2);
+}
+
+.link-peer {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  color: var(--accent-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-peer:hover {
+  text-decoration: underline;
+}
+
+.link-reason {
+  color: var(--faint);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.link-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 /* ---------- capture bar ---------- */

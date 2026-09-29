@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
+import { captureSourceContext } from '../storage/desktop-actions'
 import { isComposing } from '../util/keyboard'
 
 export function CaptureBar() {
@@ -10,9 +11,11 @@ export function CaptureBar() {
   const [text, setText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const submit = () => {
+  const submit = async () => {
     if (!text.trim()) return
-    store.capture(text)
+    // Never let a context lookup failure block the save.
+    const source = await captureSourceContext().catch(() => ({ app: null, title: null }))
+    store.capture(text, source)
     setText('')
   }
 
@@ -27,7 +30,7 @@ export function CaptureBar() {
           if (isComposing(event)) return
           if (event.key === 'Enter') {
             event.preventDefault()
-            submit()
+            void submit()
           } else if (event.key === 'Escape') {
             setText('')
             event.currentTarget.blur()
@@ -35,7 +38,7 @@ export function CaptureBar() {
         }}
         data-capture-bar
       />
-      <button className="btn primary" onClick={submit} disabled={!text.trim()}>
+      <button className="btn primary" onClick={() => void submit()} disabled={!text.trim()}>
         {t('capture.button')}
       </button>
       <span className="capture-hint">

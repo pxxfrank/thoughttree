@@ -10,6 +10,7 @@ import { DndProvider, type DragPayload, type DropTarget } from './dnd'
 import { FocusPanel } from './FocusPanel'
 import { Header } from './Header'
 import { InboxPanel } from './InboxPanel'
+import { SearchPalette } from './SearchPalette'
 import { Toast } from './Toast'
 import { TreePanel } from './TreePanel'
 import { WhyHerePopover } from './WhyHerePopover'
@@ -127,6 +128,7 @@ export function App() {
         <CaptureBar />
       </div>
       <WhyHerePopover />
+      <SearchPalette />
       <Toast />
     </DndProvider>
   )

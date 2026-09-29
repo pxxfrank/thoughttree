@@ -28,7 +28,7 @@ pub struct OrbRuntime {
 #[derive(Default)]
 pub struct OrbState(pub Mutex<OrbRuntime>);
 
-#[derive(Serialize)]
+#[derive(Serialize, Default, Clone)]
 pub struct CaptureSource {
     pub app: Option<String>,
     pub title: Option<String>,
@@ -517,11 +517,8 @@ pub fn set_app_theme(app: AppHandle, theme: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn capture_source_context() -> CaptureSource {
-    CaptureSource {
-        app: None,
-        title: None,
-    }
+pub fn capture_source_context(state: State<'_, crate::context::ContextSlot>) -> CaptureSource {
+    crate::context::current(&state)
 }
 
 #[tauri::command]

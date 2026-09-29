@@ -6,6 +6,7 @@ import {
   addChildMutation,
   captureMutation,
   deleteMutation,
+  expandAncestorsMutation,
   placeMutation,
   setConclusionMutation,
   setNoteMutation,
@@ -41,6 +42,7 @@ export interface AppState extends EntityState {
   inboxSelection: string[]
   editingId: string | null
   creating: CreateTarget
+  searching: boolean
   focusMode: boolean
   showLater: boolean
   showDone: boolean
@@ -72,6 +74,7 @@ function initialState(): AppState {
     inboxSelection: [],
     editingId: null,
     creating: null,
+    searching: false,
     focusMode: false,
     showLater: true,
     showDone: true,
@@ -451,6 +454,23 @@ export class AppStore {
 
   cancelCreate(): void {
     this.patch({ creating: null })
+  }
+
+  openSearch(): void {
+    this.patch({ searching: true })
+  }
+
+  closeSearch(): void {
+    this.patch({ searching: false })
+  }
+
+  /**
+   * Jumps to a question: opens the folded branches above it, selects it, and
+   * dismisses the search and focus overlays so it is actually on screen.
+   */
+  revealNode(id: string): void {
+    this.run(expandAncestorsMutation(this.allNodes(), id))
+    this.patch({ selectedId: id, searching: false, focusMode: false })
   }
 
   toggleFocusMode(): void {

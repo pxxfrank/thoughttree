@@ -897,6 +897,65 @@ textarea {
   margin-top: 10px;
 }
 
+/* ---------- search palette ---------- */
+
+.search-palette {
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 520px;
+}
+
+.search-results {
+  margin-top: 8px;
+  max-height: 340px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+.search-row:hover,
+.search-row.on {
+  background: var(--panel-3);
+}
+
+.search-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-row-text {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-row-path {
+  font-size: 11px;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-palette .empty {
+  padding: 20px;
+}
+
 /* ---------- toast ---------- */
 
 .toast {

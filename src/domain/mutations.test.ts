@@ -5,6 +5,7 @@ import {
   addChildMutation,
   captureMutation,
   deleteMutation,
+  expandAncestorsMutation,
   placeMutation,
   setNoteMutation,
   setPriorityMutation,
@@ -247,6 +248,40 @@ describe('relation', () => {
     const explained: Edge = { ...sampleEdge, reason: 'why' }
     const m = setRelationMutation(explained, 'decompose', '  ') as Mutation
     expect(m.forward.upsert_edges[0].reason).toBeNull()
+  })
+})
+
+describe('expand ancestors', () => {
+  it('expands only the ancestors that are collapsed', () => {
+    const context = ctx([
+      n('root', { collapsed: true }),
+      n('mid', { parent_id: 'root', collapsed: false }),
+      n('leaf', { parent_id: 'mid' }),
+    ])
+    const m = expandAncestorsMutation(context.nodes, 'leaf', T0) as Mutation
+    expect(m.labelKey).toBe('mutation.expandTo')
+    expect(m.forward.upsert_nodes.map((x) => x.id)).toEqual(['root'])
+    expect(m.forward.upsert_nodes[0].collapsed).toBe(false)
+    expect(m.forward.upsert_nodes[0].updated_at).toBe(T0)
+    // The originals come back on undo.
+    expect(m.backward.upsert_nodes.map((x) => x.id)).toEqual(['root'])
+    expect(m.backward.upsert_nodes[0].collapsed).toBe(true)
+  })
+
+  it('expands every collapsed ancestor, not just the nearest', () => {
+    const context = ctx([
+      n('root', { collapsed: true }),
+      n('mid', { parent_id: 'root', collapsed: true }),
+      n('leaf', { parent_id: 'mid' }),
+    ])
+    const m = expandAncestorsMutation(context.nodes, 'leaf', T0) as Mutation
+    expect(m.forward.upsert_nodes.map((x) => x.id).sort()).toEqual(['mid', 'root'])
+    expect(m.forward.upsert_nodes.every((x) => x.collapsed === false)).toBe(true)
+  })
+
+  it('returns null when nothing is collapsed', () => {
+    const context = ctx([n('root'), n('leaf', { parent_id: 'root' })])
+    expect(expandAncestorsMutation(context.nodes, 'leaf', T0)).toBeNull()
   })
 })
 

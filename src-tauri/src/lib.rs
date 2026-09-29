@@ -1,4 +1,5 @@
 mod commands;
+mod context;
 mod db;
 mod models;
 mod platform;
@@ -80,6 +81,7 @@ pub fn run() {
             // tauri.conf.json, which is built before this hook even runs.
             app.manage(AppDb::open(&db_path));
             app.manage(OrbState::default());
+            app.manage(context::ContextSlot::default());
 
             // All three windows are created here, in order, rather than in the
             // config: config windows are built before this hook runs, and the
@@ -96,6 +98,7 @@ pub fn run() {
             windows::restore_orb(&handle);
             windows::show_main(&handle);
             windows::watch_main_window(handle.clone());
+            context::start(&handle);
             if let Err(error) = tray::install(app) {
                 eprintln!("[thoughttree] could not create the tray icon: {error}");
             }

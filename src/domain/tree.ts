@@ -35,12 +35,6 @@ export function roots(nodes: Node[]): Node[] {
   return childrenOf(nodes, null)
 }
 
-export function findByText(nodes: Node[], query: string): Node[] {
-  const needle = query.trim().toLowerCase()
-  if (!needle) return []
-  return nodes.filter((n) => n.text.toLowerCase().includes(needle))
-}
-
 export interface TreeItem {
   node: Node
   depth: number

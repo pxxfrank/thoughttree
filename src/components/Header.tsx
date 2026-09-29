@@ -131,6 +131,9 @@ export function Header() {
         >
           {t('action.redo')}
         </button>
+        <button className="btn" onClick={store.openSearch} title={t('keys.search')}>
+          {t('nav.search')}
+        </button>
         <button className="btn" onClick={() => setShowHelp(true)} title={t('action.keys.title')}>
           {t('action.keys')}
         </button>

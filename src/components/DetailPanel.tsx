@@ -179,6 +179,17 @@ export function DetailPanel() {
           />
         </Field>
 
+        {(node.source_app || node.source_title) && (
+          <Field label={t('field.source')}>
+            <div className="field-value">{node.source_app ?? t('field.source.unknown')}</div>
+            {node.source_title && (
+              <div className="hint" style={{ marginTop: 5 }}>
+                {node.source_title}
+              </div>
+            )}
+          </Field>
+        )}
+
         <Field label={t('field.openQuestions', { n: openChildren.length })}>
           {children.length === 0 ? (
             <div className="hint">{t('detail.noChildren')}</div>

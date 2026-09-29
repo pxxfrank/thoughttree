@@ -1,5 +1,5 @@
 import { edgeForNode } from './relations'
-import { canReparent, descendantIds, indexChildren, orderWithMany } from './tree'
+import { canReparent, descendantIds, indexChildren, orderWithMany, ancestorsOf } from './tree'
 import { emptyChanges, newId, nowMs } from './types'
 import type { Changes, Edge, Node, Priority, RelationType, Status } from './types'
 
@@ -149,6 +149,28 @@ export function setConclusionMutation(
 
 export function toggleCollapseMutation(prev: Node, now = nowMs()): Mutation | null {
   return patch(prev, { collapsed: !prev.collapsed }, 'mutation.toggleChildren', now)
+}
+
+/**
+ * Opens every collapsed ancestor of a node, so jumping to it from search lands
+ * it in view instead of inside a folded branch. Returns null when the path is
+ * already open.
+ */
+export function expandAncestorsMutation(
+  nodes: Node[],
+  id: string,
+  now = nowMs(),
+): Mutation | null {
+  const collapsed = ancestorsOf(nodes, id).filter((ancestor) => ancestor.collapsed)
+  if (collapsed.length === 0) return null
+  return {
+    labelKey: 'mutation.expandTo',
+    forward: {
+      ...emptyChanges(),
+      upsert_nodes: collapsed.map((ancestor) => ({ ...ancestor, collapsed: false, updated_at: now })),
+    },
+    backward: { ...emptyChanges(), upsert_nodes: collapsed },
+  }
 }
 
 /** Deletes a node and everything beneath it, so no orphan is ever left behind. */

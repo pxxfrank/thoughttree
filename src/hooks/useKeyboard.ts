@@ -51,6 +51,14 @@ export function useKeyboard(): void {
         store.toggleFocusMode()
         return
       }
+      // Ctrl+P opens search from anywhere, including while typing. It must be
+      // handled before the typing/mod guard below, and prevented from reaching
+      // the browser's print dialog.
+      if (mod && !event.shiftKey && key === 'p') {
+        event.preventDefault()
+        store.openSearch()
+        return
+      }
 
       const snapshot = store.getState()
       const selectedId = snapshot.selectedId

@@ -41,6 +41,18 @@ describe('capture → inbox', () => {
     expect(store.capture('   ')).toBeNull()
     expect(persistence.applied).toHaveLength(0)
   })
+
+  it('records which app and window a thought came from', async () => {
+    const { store, persistence } = await ready()
+    const id = store.capture('Note jotted in an editor', {
+      app: 'notepad',
+      title: 'Untitled - Notepad',
+    }) as string
+    const node = store.getState().nodes[id]
+    expect(node.source_app).toBe('notepad')
+    expect(node.source_title).toBe('Untitled - Notepad')
+    await vi.waitFor(() => expect(persistence.applied).toHaveLength(1))
+  })
 })
 
 describe('inbox → tree', () => {
@@ -335,5 +347,40 @@ describe('node detail fields', () => {
     store.setConclusion(id, 'final answer')
     expect(store.getState().nodes[id].note).toBe('half-formed note')
     expect(store.getState().nodes[id].conclusion).toBe('final answer')
+  })
+})
+
+describe('search → reveal', () => {
+  it('opens and closes the palette', async () => {
+    const { store } = await ready()
+    expect(store.getState().searching).toBe(false)
+    store.openSearch()
+    expect(store.getState().searching).toBe(true)
+    store.closeSearch()
+    expect(store.getState().searching).toBe(false)
+  })
+
+  it('revealing a node uncollapses its ancestors and clears the overlays', async () => {
+    const { store } = await ready()
+    const root = store.addChild(null, 0, 'root') as string
+    const child = store.addChild(root, 0, 'child') as string
+    const leaf = store.addChild(child, 0, 'leaf') as string
+
+    store.toggleCollapse(root)
+    store.toggleCollapse(child)
+    store.toggleFocusMode()
+    store.openSearch()
+    expect(store.getState().nodes[root].collapsed).toBe(true)
+    expect(store.getState().nodes[child].collapsed).toBe(true)
+    expect(store.getState().focusMode).toBe(true)
+
+    store.revealNode(leaf)
+
+    const state = store.getState()
+    expect(state.nodes[root].collapsed).toBe(false)
+    expect(state.nodes[child].collapsed).toBe(false)
+    expect(state.selectedId).toBe(leaf)
+    expect(state.searching).toBe(false)
+    expect(state.focusMode).toBe(false)
   })
 })

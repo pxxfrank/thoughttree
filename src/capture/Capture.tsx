@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useStore } from '../state/context'
-import { hideCaptureWindow } from '../storage/desktop-actions'
+import { captureSourceContext, hideCaptureWindow } from '../storage/desktop-actions'
 import { isComposing } from '../util/keyboard'
 
 const SAVED_FLASH_MS = 150
@@ -45,13 +45,16 @@ export function Capture() {
     void hideCaptureWindow()
   }
 
-  const submit = () => {
+  const submit = async () => {
     const value = text.trim()
     if (!value) {
       close()
       return
     }
-    store.capture(value)
+    // The context lookup must never block a capture: a failure here just means
+    // the thought is filed without a source.
+    const source = await captureSourceContext().catch(() => ({ app: null, title: null }))
+    store.capture(value, source)
     setText('')
     setSaved(true)
     window.setTimeout(() => {
@@ -75,7 +78,7 @@ export function Capture() {
             if (isComposing(event)) return
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault()
-              submit()
+              void submit()
             } else if (event.key === 'Escape') {
               event.preventDefault()
               close()

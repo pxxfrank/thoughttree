@@ -15,6 +15,7 @@ type Dict = Record<string, string>
 
 const en: Dict = {
   'nav.focus': 'Focus',
+  'nav.search': 'Search',
   'filter.later': '↓ Later',
   'filter.done': '✓ Done',
   'filter.archived': 'Archived',
@@ -82,6 +83,8 @@ const en: Dict = {
   'field.whyHere': 'Why here?',
   'field.notes': 'Notes',
   'field.conclusion': 'Conclusion',
+  'field.source': 'Captured from',
+  'field.source.unknown': 'Unknown app',
   'field.openQuestions': 'Open questions ({n})',
 
   'priority.normal': 'Normal',
@@ -115,6 +118,14 @@ const en: Dict = {
   'why.save': 'Save reason',
   'why.skip': 'Skip for now',
   'why.moved': '{child} moved.',
+
+  'search.placeholder': 'Search questions, notes and conclusions…',
+  'search.hint': '↑↓ move · Enter jump · Esc close',
+  'search.empty': 'No matches.',
+  'search.field.text': 'Question',
+  'search.field.note': 'Note',
+  'search.field.conclusion': 'Conclusion',
+  'search.field.reason': 'Reason',
 
   'relation.decompose': 'Decompose',
   'relation.decompose.hint': 'This is part of the parent question',
@@ -159,6 +170,7 @@ const en: Dict = {
   'keys.focus': 'Toggle Focus mode',
   'keys.undo': 'Undo / redo',
   'keys.escape': 'Deselect, or close a popover',
+  'keys.search': 'Open search',
 
   'toast.exported': 'Exported to {path}',
   'toast.exportFailed': 'Export failed: {error}',
@@ -194,10 +206,12 @@ const en: Dict = {
   'mutation.moveOne': 'Move question',
   'mutation.moveMany': 'Move {n} questions',
   'mutation.explainRelation': 'Explain relation',
+  'mutation.expandTo': 'Expand to question',
 }
 
 const zh: Dict = {
   'nav.focus': '聚焦',
+  'nav.search': '搜索',
   'filter.later': '↓ 稍后',
   'filter.done': '✓ 已完成',
   'filter.archived': '已归档',
@@ -260,6 +274,8 @@ const zh: Dict = {
   'field.whyHere': '为什么在这里？',
   'field.notes': '笔记',
   'field.conclusion': '结论',
+  'field.source': '来源',
+  'field.source.unknown': '未知应用',
   'field.openQuestions': '未解决的子问题（{n}）',
 
   'priority.normal': '普通',
@@ -293,6 +309,14 @@ const zh: Dict = {
   'why.save': '保存理由',
   'why.skip': '暂时跳过',
   'why.moved': '{child} 已移动。',
+
+  'search.placeholder': '搜索问题、笔记和结论…',
+  'search.hint': '↑↓ 选择 · 回车跳转 · Esc 关闭',
+  'search.empty': '没有匹配结果。',
+  'search.field.text': '问题',
+  'search.field.note': '笔记',
+  'search.field.conclusion': '结论',
+  'search.field.reason': '理由',
 
   'relation.decompose': '拆解',
   'relation.decompose.hint': '它是父问题的一部分',
@@ -336,6 +360,7 @@ const zh: Dict = {
   'keys.focus': '切换聚焦模式',
   'keys.undo': '撤销 / 重做',
   'keys.escape': '取消选中或关闭弹层',
+  'keys.search': '打开搜索',
 
   'toast.exported': '已导出到 {path}',
   'toast.exportFailed': '导出失败：{error}',
@@ -371,6 +396,7 @@ const zh: Dict = {
   'mutation.moveOne': '移动问题',
   'mutation.moveMany': '移动 {n} 个问题',
   'mutation.explainRelation': '说明关系',
+  'mutation.expandTo': '展开到该问题',
 }
 
 const DICTS: Record<Locale, Dict> = { en, zh }

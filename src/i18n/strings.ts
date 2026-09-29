@@ -16,6 +16,8 @@ type Dict = Record<string, string>
 const en: Dict = {
   'nav.focus': 'Focus',
   'nav.search': 'Search',
+  'nav.review': 'Review',
+  'nav.conclusions': 'Conclusions',
   'filter.later': '↓ Later',
   'filter.done': '✓ Done',
   'filter.archived': 'Archived',
@@ -41,6 +43,8 @@ const en: Dict = {
   'panel.focus': 'Focus',
   'panel.question': 'Question',
   'panel.newRoot': 'New root question',
+  'panel.review': 'Review',
+  'panel.conclusions': 'Conclusions',
 
   'tree.newQuestion': 'New question…  (Enter to add, Esc to stop)',
 
@@ -76,6 +80,21 @@ const en: Dict = {
   'focus.waiting': '{n} unprocessed thought(s) waiting in the Inbox.',
   'focus.leave': 'Leave focus',
   'focus.thread': 'Main thread',
+
+  'review.title': 'A little to revisit',
+  'review.sub':
+    'No goals here, no streaks. Just some of what you wrote, brought back once.',
+  'review.older': 'Older captures',
+  'review.notes': 'Notes without a conclusion',
+  'review.unexplained': 'Relations still unexplained',
+  'review.inbox': 'Still unfiled',
+  'review.empty': 'Nothing to revisit yet.',
+  'review.reshuffle': 'Shuffle',
+
+  'conclusions.title': 'What you concluded',
+  'conclusions.sub': 'Every question you have written an answer for.',
+  'conclusions.empty':
+    "No conclusions yet. Write one in a question's detail panel.",
 
   'field.question': 'Question',
   'field.priority': 'Priority',
@@ -171,6 +190,7 @@ const en: Dict = {
   'keys.undo': 'Undo / redo',
   'keys.escape': 'Deselect, or close a popover',
   'keys.search': 'Open search',
+  'keys.review': 'Open review',
 
   'toast.exported': 'Exported to {path}',
   'toast.exportFailed': 'Export failed: {error}',
@@ -212,6 +232,8 @@ const en: Dict = {
 const zh: Dict = {
   'nav.focus': '聚焦',
   'nav.search': '搜索',
+  'nav.review': '回顾',
+  'nav.conclusions': '结论',
   'filter.later': '↓ 稍后',
   'filter.done': '✓ 已完成',
   'filter.archived': '已归档',
@@ -237,6 +259,8 @@ const zh: Dict = {
   'panel.focus': '聚焦',
   'panel.question': '问题',
   'panel.newRoot': '新建根问题',
+  'panel.review': '回顾',
+  'panel.conclusions': '结论',
 
   'tree.newQuestion': '新问题…（回车添加，Esc 结束）',
 
@@ -267,6 +291,19 @@ const zh: Dict = {
   'focus.waiting': '收集箱里还有 {n} 条未处理的想法。',
   'focus.leave': '退出聚焦',
   'focus.thread': '主线',
+
+  'review.title': '回头看看',
+  'review.sub': '这里没有目标，也没有连续打卡。只是把写过的东西再拿给你看一眼。',
+  'review.older': '较早的记录',
+  'review.notes': '有笔记，但还没结论',
+  'review.unexplained': '还没说明关系的问题',
+  'review.inbox': '还没归档的',
+  'review.empty': '暂时还没有可回顾的内容。',
+  'review.reshuffle': '换一批',
+
+  'conclusions.title': '你得出的结论',
+  'conclusions.sub': '所有你写下过答案的问题。',
+  'conclusions.empty': '还没有结论。在问题详情面板里写一个。',
 
   'field.question': '问题',
   'field.priority': '优先级',
@@ -361,6 +398,7 @@ const zh: Dict = {
   'keys.undo': '撤销 / 重做',
   'keys.escape': '取消选中或关闭弹层',
   'keys.search': '打开搜索',
+  'keys.review': '打开回顾',
 
   'toast.exported': '已导出到 {path}',
   'toast.exportFailed': '导出失败：{error}',

@@ -5,11 +5,13 @@ import { useAppState, useStore } from '../state/context'
 import { setAppTheme, fitMainToScreen, checkShortcut } from '../storage/desktop-actions'
 import { applyTheme, resolveTheme } from '../theme/theme'
 import { CaptureBar } from './CaptureBar'
+import { ConclusionPanel } from './ConclusionPanel'
 import { DetailPanel } from './DetailPanel'
 import { DndProvider, type DragPayload, type DropTarget } from './dnd'
 import { FocusPanel } from './FocusPanel'
 import { Header } from './Header'
 import { InboxPanel } from './InboxPanel'
+import { ReviewPanel } from './ReviewPanel'
 import { SearchPalette } from './SearchPalette'
 import { Toast } from './Toast'
 import { TreePanel } from './TreePanel'
@@ -121,7 +123,15 @@ export function App() {
       <div className="app">
         <Header />
         <div className="workspace">
-          {state.focusMode ? <FocusPanel /> : <InboxPanel />}
+          {state.leftView === 'focus' ? (
+            <FocusPanel />
+          ) : state.leftView === 'review' ? (
+            <ReviewPanel />
+          ) : state.leftView === 'conclusions' ? (
+            <ConclusionPanel />
+          ) : (
+            <InboxPanel />
+          )}
           <TreePanel />
           <DetailPanel />
         </div>

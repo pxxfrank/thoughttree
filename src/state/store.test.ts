@@ -384,3 +384,38 @@ describe('search → reveal', () => {
     expect(state.focusMode).toBe(false)
   })
 })
+
+describe('left column view', () => {
+  it('setView focuses the tree only for the focus view', async () => {
+    const { store } = await ready()
+    store.setView('focus')
+    expect(store.getState().leftView).toBe('focus')
+    expect(store.getState().focusMode).toBe(true)
+
+    store.setView('review')
+    expect(store.getState().leftView).toBe('review')
+    expect(store.getState().focusMode).toBe(false)
+  })
+
+  it('toggleFocusMode moves from the inbox to focus and back', async () => {
+    const { store } = await ready()
+    expect(store.getState().leftView).toBe('inbox')
+
+    store.toggleFocusMode()
+    expect(store.getState().leftView).toBe('focus')
+    expect(store.getState().focusMode).toBe(true)
+
+    store.toggleFocusMode()
+    expect(store.getState().leftView).toBe('inbox')
+    expect(store.getState().focusMode).toBe(false)
+  })
+
+  it('reshuffle changes the session seed', async () => {
+    const { store } = await ready()
+    const before = store.getState().sessionSeed
+    const now = vi.spyOn(Date, 'now').mockReturnValue(before + 1234)
+    store.reshuffle()
+    expect(store.getState().sessionSeed).toBe(before + 1234)
+    now.mockRestore()
+  })
+})

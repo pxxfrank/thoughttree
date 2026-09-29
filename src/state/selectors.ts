@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { makeVisibility, filterTree, inboxOrder, focusList } from '../domain/focus'
 import { unexplainedNodeIds, edgeForNode } from '../domain/relations'
+import { reviewGroups, type ReviewGroup } from '../domain/review'
 import { buildForest, flatten, pathText } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
+import type { Node } from '../domain/types'
 import { useAppState } from './context'
 
 export function useUnexplained(): Set<string> {
@@ -62,6 +64,26 @@ export function useStarredInInbox() {
       ),
     [nodes],
   )
+}
+
+export function useReviewGroups(): ReviewGroup[] {
+  const { nodes, edges, sessionSeed } = useAppState()
+  return useMemo(
+    () => reviewGroups(Object.values(nodes), Object.values(edges), sessionSeed),
+    [nodes, edges, sessionSeed],
+  )
+}
+
+/** Questions that have been answered, newest answer first, with their path. */
+export function useConclusions(): { node: Node; path: string }[] {
+  const { nodes } = useAppState()
+  return useMemo(() => {
+    const all = Object.values(nodes)
+    return all
+      .filter((node) => !node.inbox && (node.conclusion ?? '').trim() !== '')
+      .sort((a, b) => b.updated_at - a.updated_at)
+      .map((node) => ({ node, path: pathText(all, node.id) }))
+  }, [nodes])
 }
 
 export function useEdgeFor(nodeId: string | null) {

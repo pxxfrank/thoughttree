@@ -43,7 +43,11 @@ export interface AppState extends EntityState {
   editingId: string | null
   creating: CreateTarget
   searching: boolean
+  /** Which panel takes the left column. Focus also drives the tree filter. */
+  leftView: 'inbox' | 'focus' | 'review' | 'conclusions'
   focusMode: boolean
+  /** Picked once per session; Review reshuffles it on demand. */
+  sessionSeed: number
   showLater: boolean
   showDone: boolean
   showArchived: boolean
@@ -75,7 +79,9 @@ function initialState(): AppState {
     editingId: null,
     creating: null,
     searching: false,
+    leftView: 'inbox',
     focusMode: false,
+    sessionSeed: Date.now(),
     showLater: true,
     showDone: true,
     showArchived: false,
@@ -474,7 +480,17 @@ export class AppStore {
   }
 
   toggleFocusMode(): void {
-    this.patch({ focusMode: !this.state.focusMode })
+    this.setView(this.state.leftView === 'focus' ? 'inbox' : 'focus')
+  }
+
+  /** Switches the left column; Focus is the only view that filters the tree. */
+  setView(view: AppState['leftView']): void {
+    this.patch({ leftView: view, focusMode: view === 'focus' })
+  }
+
+  /** The one thing that moves the Review seed after startup. */
+  reshuffle(): void {
+    this.patch({ sessionSeed: Date.now() })
   }
 
   setFilter(key: 'showLater' | 'showDone' | 'showArchived' | 'onlyUnexplained', value: boolean): void {

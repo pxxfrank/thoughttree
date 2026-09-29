@@ -60,11 +60,23 @@ export function Header() {
 
         <div className="seg">
           <button
-            className={state.focusMode ? 'on' : ''}
-            onClick={store.toggleFocusMode}
+            className={state.leftView === 'focus' ? 'on' : ''}
+            onClick={() => store.setView('focus')}
             title="Ctrl+Shift+F"
           >
             ◉ {t('nav.focus')}
+          </button>
+          <button
+            className={state.leftView === 'review' ? 'on' : ''}
+            onClick={() => store.setView('review')}
+          >
+            {t('nav.review')}
+          </button>
+          <button
+            className={state.leftView === 'conclusions' ? 'on' : ''}
+            onClick={() => store.setView('conclusions')}
+          >
+            {t('nav.conclusions')}
           </button>
         </div>
 

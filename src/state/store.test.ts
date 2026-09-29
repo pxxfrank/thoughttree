@@ -419,3 +419,75 @@ describe('left column view', () => {
     now.mockRestore()
   })
 })
+
+describe('import and restore', () => {
+  const restored = {
+    id: 'restored-1',
+    text: 'restored',
+    created_at: 1,
+    updated_at: 1,
+    priority: 'normal' as const,
+    status: 'open' as const,
+    parent_id: null,
+    position: 0,
+    note: null,
+    conclusion: null,
+    inbox: false,
+    collapsed: false,
+    source_app: null,
+    source_title: null,
+  }
+
+  it('importSnapshot is a single undoable mutation', async () => {
+    const { store } = await ready()
+    const conflict = store.addChild(null, 0, 'conflict') as string
+    const previous = store.getState().nodes[conflict]
+
+    store.importSnapshot({
+      nodes: [
+        { ...previous, id: 'fresh', text: 'imported' },
+        { ...previous, text: 'from file' },
+      ],
+      edges: [],
+    })
+
+    expect(store.getState().nodes['fresh']).toBeDefined()
+    expect(store.getState().nodes[conflict].text).toBe('from file')
+    expect(store.getState().undoLabelKey).toBe('mutation.import')
+    expect(store.getState().toast?.key).toBe('toast.imported')
+
+    store.undo()
+    expect(store.getState().nodes['fresh']).toBeUndefined()
+    expect(store.getState().nodes[conflict].text).toBe('conflict')
+  })
+
+  it('restoreSnapshot replaces state and clears the undo/redo stacks', async () => {
+    const { store } = await ready()
+    store.capture('one')
+    store.capture('two')
+    store.undo()
+    expect(store.getState().undoLabelKey).not.toBeNull()
+    expect(store.getState().redoLabelKey).not.toBeNull()
+
+    store.restoreSnapshot({ nodes: [restored], edges: [] })
+
+    expect(Object.keys(store.getState().nodes)).toEqual(['restored-1'])
+    expect(store.getState().edges).toEqual({})
+    expect(store.getState().undoLabelKey).toBeNull()
+    expect(store.getState().redoLabelKey).toBeNull()
+    expect(store.getState().toast?.key).toBe('toast.restored')
+  })
+
+  it('readImport reads the file without touching the graph', async () => {
+    const { store, persistence } = await ready()
+    persistence.imported = { nodes: [restored], edges: [] }
+
+    const snapshot = await store.readImport('export.json')
+    expect(persistence.importedPath).toBe('export.json')
+    expect(snapshot.nodes).toHaveLength(1)
+    expect(Object.keys(store.getState().nodes)).toHaveLength(0)
+
+    persistence.failImport = true
+    await expect(store.readImport('bad.json')).rejects.toThrow('error.importFormat')
+  })
+})

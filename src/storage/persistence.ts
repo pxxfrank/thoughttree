@@ -12,6 +12,8 @@ export interface Persistence {
   broadcast(changes: Changes): void
   onRemote(handler: (changes: Changes) => void): () => void
   exportJson(): Promise<string | null>
+  /** Reads an exported file back into a snapshot; writes nothing. */
+  readImport(path: string): Promise<Snapshot>
   dataDirectory(): Promise<string>
   readSettings(): Promise<Record<string, string>>
   writeSetting(key: string, value: string): Promise<void>

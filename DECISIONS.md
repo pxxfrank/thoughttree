@@ -518,4 +518,28 @@ handler would have thrown even if reached.
 
 **Date**: 2026-09-29
 
+---
+
+## D029 — Restoring a backup replaces state outright, outside the changeset model
+
+**Decision**: `restoreSnapshot` replaces `nodes`/`edges` wholesale and clears the
+undo and redo stacks. It is not expressed as a reversible `Mutation`, and it is
+the only store action that is not.
+
+**Reason**: Every other action is a changeset (D003), so undo, redo and
+multi-window broadcast come for free. A restore is different in kind: it swaps
+the entire SQLite file on disk. The resulting graph may not be reachable from the
+current one by any finite set of upserts and deletes — nodes can be gone, ids
+reused, and the file's history is a different history. Pretending it is a
+mutation would let "undo" hand the user a graph that never existed. Clearing the
+stacks is the honest behaviour: a restore is a new starting point. It is itself
+recoverable, because the live file is copied into `backups/` before the swap.
+
+**Trade-off**: A restore discards in-memory history, and other open windows are
+not updated — they only re-read the database on their next launch. This is
+deliberate: broadcasting a "replace everything" changeset would let a peer window
+undo a mutation whose backward changeset no longer describes the graph.
+
+**Date**: 2026-09-29
+
 

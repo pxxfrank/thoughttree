@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import type { Snapshot } from '../domain/types'
 
 export const openCaptureWindow = (): Promise<unknown> => invoke('open_capture_window')
 export const hideCaptureWindow = (): Promise<unknown> => invoke('hide_capture_window')
@@ -14,3 +15,15 @@ export const fitMainToScreen = (width: number, height: number): Promise<unknown>
 export const captureSourceContext = (): Promise<{ app: string | null; title: string | null }> =>
   invoke('capture_source_context')
 export const checkShortcut = (): Promise<unknown> => invoke('shortcut_status')
+
+/** One rotating `.db` snapshot written by the Rust side at launch. */
+export interface BackupInfo {
+  name: string
+  path: string
+  created_at: number
+  size: number
+}
+
+export const listBackups = (): Promise<BackupInfo[]> => invoke('list_backups')
+export const restoreBackup = (path: string): Promise<Snapshot> =>
+  invoke('restore_backup', { path })

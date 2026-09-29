@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { applyChanges, emptyEntityState, indexById, toSnapshot } from './changes'
+import { applyChanges, danglingEdges, emptyEntityState, indexById, toSnapshot } from './changes'
 import {
   DomainError,
   addChildMutation,
   captureMutation,
   deleteMutation,
   expandAncestorsMutation,
+  importMutation,
   placeMutation,
   setNoteMutation,
   setPriorityMutation,
@@ -18,7 +19,7 @@ import {
 } from './mutations'
 import { n, T0 } from './test-utils'
 import { childrenOf, indexChildren } from './tree'
-import type { Edge, Node } from './types'
+import type { Edge, Node, Snapshot } from './types'
 
 function ctx(nodes: Node[], edges: Edge[] = []): MutationContext {
   return { nodes, edges }
@@ -302,5 +303,84 @@ describe('reducer invariants', () => {
     expect(snapshot.edges).toHaveLength(0)
     expect(emptyEntityState()).toEqual({ nodes: {}, edges: {} })
     expect(indexChildren(context.nodes).get(null)).toBeUndefined()
+  })
+})
+
+describe('import', () => {
+  const edge = (id: string, from: string, to: string): Edge => ({
+    id,
+    from_node: from,
+    to_node: to,
+    relation_type: 'decompose',
+    reason: null,
+    created_at: T0,
+  })
+
+  it('merges: new ids are added, existing ids overwritten, others untouched', () => {
+    const context = ctx([n('keep'), n('conflict', { text: 'old' })])
+    const file: Snapshot = {
+      nodes: [n('conflict', { text: 'from file' }), n('fresh')],
+      edges: [],
+    }
+    const m = importMutation(context, file) as Mutation
+    expect(m.labelKey).toBe('mutation.import')
+    expect(m.forward.upsert_nodes.map((x) => x.id).sort()).toEqual(['conflict', 'fresh'])
+
+    const after = run(context, m)
+    expect(after.nodes.map((x) => x.id).sort()).toEqual(['conflict', 'fresh', 'keep'])
+    expect(after.nodes.find((x) => x.id === 'conflict')?.text).toBe('from file')
+    // An id the file does not mention is left exactly as it was.
+    expect(after.nodes.find((x) => x.id === 'keep')?.text).toBe('node keep')
+  })
+
+  it('undo removes the imported nodes and restores the overwritten ones', () => {
+    const context = ctx([n('conflict', { text: 'old' })])
+    const file: Snapshot = {
+      nodes: [n('conflict', { text: 'from file' }), n('fresh')],
+      edges: [],
+    }
+    const m = importMutation(context, file) as Mutation
+    const reverted = undo(run(context, m), m)
+    expect(reverted.nodes.map((x) => x.id)).toEqual(['conflict'])
+    expect(reverted.nodes[0].text).toBe('old')
+  })
+
+  it('undo restores an edge the import displaced', () => {
+    const context = ctx(
+      [n('root'), n('other'), n('child', { parent_id: 'root' })],
+      [edge('e-orig', 'root', 'child')],
+    )
+    // The file re-parents `child`, so the original incoming edge is replaced.
+    const file: Snapshot = {
+      nodes: [n('child', { parent_id: 'other' })],
+      edges: [edge('e-new', 'other', 'child')],
+    }
+    const m = importMutation(context, file) as Mutation
+    const after = run(context, m)
+    expect(after.edges.map((e) => e.id)).toEqual(['e-new'])
+
+    const reverted = undo(after, m)
+    expect(reverted.edges.map((e) => e.id)).toEqual(['e-orig'])
+    expect(reverted.edges[0].from_node).toBe('root')
+  })
+
+  it('drops edges whose endpoints are missing from both the file and the tree', () => {
+    const context = ctx([n('root')])
+    const file: Snapshot = {
+      nodes: [n('child', { parent_id: 'root' })],
+      edges: [edge('e1', 'root', 'child'), edge('e2', 'child', 'ghost')],
+    }
+    const m = importMutation(context, file) as Mutation
+    expect(m.forward.upsert_edges.map((e) => e.id)).toEqual(['e1'])
+
+    const after = run(context, m)
+    expect(after.edges.map((e) => e.id)).toEqual(['e1'])
+    expect(
+      danglingEdges({ nodes: indexById(after.nodes), edges: indexById(after.edges) }),
+    ).toHaveLength(0)
+  })
+
+  it('returns null when the file carries nothing', () => {
+    expect(importMutation(ctx([n('a')]), { nodes: [], edges: [] })).toBeNull()
   })
 })

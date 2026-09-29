@@ -174,6 +174,13 @@ const en: Dict = {
     'Everything is stored locally in SQLite. A rotating backup is taken on every launch.',
   'help.dataFolder': 'Local application data folder',
   'help.export': 'Export JSON',
+  'help.import': 'Import JSON…',
+  'help.backups': 'Backups',
+  'help.backups.hint':
+    'A copy of the database is taken on every launch. Restoring one replaces everything in the app.',
+  'help.backup.none': 'No backups yet.',
+  'help.restore': 'Restore',
+  'help.restore.confirm': 'Replace everything with this backup? You can undo nothing after this.',
 
   'keys.move': 'Move between questions',
   'keys.collapse': 'Collapse / expand',
@@ -194,6 +201,10 @@ const en: Dict = {
 
   'toast.exported': 'Exported to {path}',
   'toast.exportFailed': 'Export failed: {error}',
+  'toast.imported': 'Imported {n} question(s).',
+  'toast.restored': 'Restored from backup.',
+  'toast.importFailed': 'Import failed.',
+  'toast.restoreFailed': 'Restore failed.',
   'toast.shortcutSet': 'Quick capture shortcut set to {accel}',
   'toast.shortcutCleared': 'Quick capture shortcut disabled',
   'toast.shortcutFailed': 'Could not set shortcut: {error}',
@@ -203,6 +214,7 @@ const en: Dict = {
   'toast.domainError': 'Could not do that: {error}',
 
   'error.moveInsideSelf': 'A question cannot be moved inside itself.',
+  'error.importFormat': 'That file is not a ThoughtTree export.',
   'toast.orbPosition': 'Orb position saved',
 
   'app.opening': 'Opening your local database…',
@@ -227,6 +239,7 @@ const en: Dict = {
   'mutation.moveMany': 'Move {n} questions',
   'mutation.explainRelation': 'Explain relation',
   'mutation.expandTo': 'Expand to question',
+  'mutation.import': 'Import',
 }
 
 const zh: Dict = {
@@ -382,6 +395,12 @@ const zh: Dict = {
   'help.data.hint': '全部以 SQLite 存在本地，每次启动都会自动备份一份。',
   'help.dataFolder': '本地应用数据文件夹',
   'help.export': '导出 JSON',
+  'help.import': '导入 JSON…',
+  'help.backups': '备份',
+  'help.backups.hint': '每次启动都会自动备份一份。恢复会用备份替换应用中的全部内容。',
+  'help.backup.none': '还没有备份。',
+  'help.restore': '恢复',
+  'help.restore.confirm': '用这个备份替换全部内容？之后无法撤销。',
 
   'keys.move': '在问题之间移动',
   'keys.collapse': '折叠 / 展开',
@@ -402,6 +421,10 @@ const zh: Dict = {
 
   'toast.exported': '已导出到 {path}',
   'toast.exportFailed': '导出失败：{error}',
+  'toast.imported': '已导入 {n} 个问题。',
+  'toast.restored': '已从备份恢复。',
+  'toast.importFailed': '导入失败。',
+  'toast.restoreFailed': '恢复失败。',
   'toast.shortcutSet': '快速记录快捷键已设为 {accel}',
   'toast.shortcutCleared': '已禁用快速记录快捷键',
   'toast.shortcutFailed': '设置快捷键失败：{error}',
@@ -411,6 +434,7 @@ const zh: Dict = {
   'toast.domainError': '无法完成该操作：{error}',
 
   'error.moveInsideSelf': '一个问题不能移动到它自己内部。',
+  'error.importFormat': '该文件不是 ThoughtTree 导出文件。',
   'toast.orbPosition': '悬浮球位置已保存',
 
   'app.opening': '正在打开本地数据库…',
@@ -435,6 +459,7 @@ const zh: Dict = {
   'mutation.moveMany': '移动 {n} 个问题',
   'mutation.explainRelation': '说明关系',
   'mutation.expandTo': '展开到该问题',
+  'mutation.import': '导入',
 }
 
 const DICTS: Record<Locale, Dict> = { en, zh }

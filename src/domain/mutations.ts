@@ -1,7 +1,9 @@
 import { edgeForNode } from './relations'
 import { canReparent, descendantIds, indexChildren, orderWithMany, ancestorsOf } from './tree'
+import { applyChanges, danglingEdges, indexById } from './changes'
+import type { EntityState } from './changes'
 import { emptyChanges, newId, nowMs } from './types'
-import type { Changes, Edge, Node, Priority, RelationType, Status } from './types'
+import type { Changes, Edge, Node, Priority, RelationType, Snapshot, Status } from './types'
 
 /**
  * A rejected edit. It carries a translation key rather than a message, because
@@ -360,4 +362,55 @@ export function setRelationMutation(
     forward: { ...emptyChanges(), upsert_edges: [next] },
     backward: { ...emptyChanges(), upsert_edges: [edge] },
   }
+}
+
+/**
+ * Merges an exported snapshot into the tree. The file wins on an id conflict;
+ * every id the file does not mention is left exactly as it is.
+ *
+ * Unlike a single-row edit this can touch hundreds of rows at once, but it is
+ * still one reversible `Mutation`: undo restores the previous version of every
+ * node the file overwrote and removes every node it introduced.
+ */
+export function importMutation(ctx: MutationContext, snapshot: Snapshot): Mutation | null {
+  const before: EntityState = { nodes: indexById(ctx.nodes), edges: indexById(ctx.edges) }
+
+  const draft: Changes = {
+    ...emptyChanges(),
+    upsert_nodes: snapshot.nodes,
+    upsert_edges: snapshot.edges,
+  }
+
+  // An imported edge whose endpoint is in neither the file nor the existing tree
+  // would be an orphan; drop it rather than write it.
+  const orphaned = new Set(
+    danglingEdges(applyChanges(before, draft)).map((edge) => edge.id),
+  )
+  const forward: Changes = {
+    ...draft,
+    upsert_edges: draft.upsert_edges.filter((edge) => !orphaned.has(edge.id)),
+  }
+  if (forward.upsert_nodes.length === 0 && forward.upsert_edges.length === 0) return null
+
+  const after = applyChanges(before, forward)
+  const backward = emptyChanges()
+
+  for (const node of forward.upsert_nodes) {
+    const previous = before.nodes[node.id]
+    if (previous) backward.upsert_nodes.push(previous)
+    else backward.delete_nodes.push(node.id)
+  }
+
+  // Edges the import added are removed; edges it replaced — including an edge
+  // displaced by the one-incoming-edge rule — are put back.
+  for (const [id, edge] of Object.entries(after.edges)) {
+    const previous = before.edges[id]
+    if (!previous) backward.delete_edges.push(id)
+    else if (previous !== edge) backward.upsert_edges.push(previous)
+  }
+  for (const [id, edge] of Object.entries(before.edges)) {
+    if (!after.edges[id]) backward.upsert_edges.push(edge)
+  }
+
+  return { labelKey: 'mutation.import', forward, backward }
 }

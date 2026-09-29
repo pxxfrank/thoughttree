@@ -39,6 +39,16 @@ pub struct Snapshot {
     pub edges: Vec<Edge>,
 }
 
+/// One entry in `<data>/backups/`. `backup_rotate` writes `.db` copies at
+/// launch; this is what the restore UI lists.
+#[derive(Debug, Clone, Serialize)]
+pub struct BackupInfo {
+    pub name: String,
+    pub path: String,
+    pub created_at: i64,
+    pub size: u64,
+}
+
 /// The single write primitive of the whole application. Every mutation — create,
 /// edit, move, delete, triage, undo, redo — is expressed as a set of upserts and
 /// deletes, applied atomically in one SQLite transaction.

@@ -6,6 +6,7 @@ mod platform;
 mod tray;
 mod windows;
 
+use crate::models::Snapshot;
 use std::path::Path;
 use std::sync::Mutex;
 use tauri::{Manager, WindowEvent};
@@ -61,6 +62,33 @@ impl AppDb {
             None => Err("the local database is not available".to_string()),
         }
     }
+
+    /// Closes the live connection, runs `swap` (which replaces the database file
+    /// on disk), then reopens from `db_path` and returns the fresh snapshot.
+    ///
+    /// The connection lives inside the mutex, so taking the lock *is* closing
+    /// it: `swap` runs with no open SQLite handle, over a `None` slot. Nothing
+    /// inside `swap` acquires a lock, so holding the guard across the file copy
+    /// cannot deadlock — it only stops a second writer from slipping in mid-swap.
+    pub fn reopen(
+        &self,
+        db_path: &Path,
+        swap: impl FnOnce() -> Result<(), String>,
+    ) -> Result<Snapshot, String> {
+        if let Some(error) = &self.open_error {
+            return Err(format!("the local database could not be opened: {error}"));
+        }
+        let mut guard = self.connection.lock().map_err(|e| e.to_string())?;
+        if let Some(connection) = guard.as_ref() {
+            db::checkpoint(connection).map_err(|e| e.to_string())?;
+        }
+        *guard = None;
+        swap()?;
+        let connection = db::open(db_path).map_err(|e| e.to_string())?;
+        let snapshot = db::load(&connection).map_err(|e| e.to_string())?;
+        *guard = Some(connection);
+        Ok(snapshot)
+    }
 }
 
 pub fn run() {
@@ -73,13 +101,22 @@ pub fn run() {
             std::fs::create_dir_all(&data_dir)?;
 
             let db_path = data_dir.join("thoughttree.db");
-            db::backup_rotate(&db_path, &data_dir.join("backups"), 5);
 
             // Manage the database *before* creating any window that talks to it.
             // A packaged front end boots from embedded assets and fires `db_load`
             // within milliseconds — faster than a window declared in
             // tauri.conf.json, which is built before this hook even runs.
-            app.manage(AppDb::open(&db_path));
+            let db = AppDb::open(&db_path);
+
+            // Back up *after* opening, on the live connection, so the copy can be
+            // checkpointed first: at launch the WAL still holds the whole previous
+            // session, and copying the file without folding it in would silently
+            // drop everything the user wrote last time.
+            let _ = db.with(|conn| {
+                db::backup_rotate(conn, &db_path, &data_dir.join("backups"), 5);
+                Ok(())
+            });
+            app.manage(db);
             app.manage(OrbState::default());
             app.manage(context::ContextSlot::default());
 
@@ -125,6 +162,9 @@ pub fn run() {
             commands::data_dir,
             commands::export_data,
             commands::create_backup,
+            commands::read_import,
+            commands::list_backups,
+            commands::restore_backup,
             windows::open_capture_window,
             windows::hide_capture_window,
             windows::show_main_window,

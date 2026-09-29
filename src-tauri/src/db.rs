@@ -1,4 +1,4 @@
-use crate::models::{Changes, Edge, Node, Snapshot};
+use crate::models::{BackupInfo, Changes, Edge, Node, Snapshot};
 use rusqlite::{params, Connection};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -239,12 +239,26 @@ pub fn set_setting(conn: &Connection, key: &str, value: &str) -> rusqlite::Resul
     Ok(())
 }
 
+/// Folds the write-ahead log back into the main database file.
+///
+/// The WAL holds every commit since the last checkpoint, so anything that copies
+/// `thoughttree.db` without running this first can silently drop the most recent
+/// session — exactly the rows a backup exists to protect.
+pub fn checkpoint(conn: &Connection) -> rusqlite::Result<()> {
+    conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+}
+
 /// Keeps the `keep` most recent database snapshots so a crash or a bad edit
 /// never costs more than one session.
-pub fn backup_rotate(db_path: &Path, backup_dir: &Path, keep: usize) {
+///
+/// The connection is passed in so the WAL is checkpointed onto the main file
+/// *before* it is copied: at launch that WAL still holds the whole previous
+/// session, and a raw file copy would otherwise miss it.
+pub fn backup_rotate(conn: &Connection, db_path: &Path, backup_dir: &Path, keep: usize) {
     if !db_path.exists() {
         return;
     }
+    let _ = checkpoint(conn);
     if std::fs::create_dir_all(backup_dir).is_err() {
         return;
     }
@@ -272,6 +286,69 @@ pub fn backup_rotate(db_path: &Path, backup_dir: &Path, keep: usize) {
     for path in backups.into_iter().take(excess) {
         let _ = std::fs::remove_file(path);
     }
+}
+
+/// The timestamp encoded in a `thoughttree-<stamp>[-suffix].db` name, falling
+/// back to the file's modified time when the name does not carry one.
+fn created_at_of(name: &str, path: &Path) -> i64 {
+    let stem = name.strip_suffix(".db").unwrap_or(name);
+    let digits: String = stem
+        .chars()
+        .skip_while(|c| !c.is_ascii_digit())
+        .take_while(|c| c.is_ascii_digit())
+        .collect();
+    if let Ok(stamp) = digits.parse::<i64>() {
+        return stamp;
+    }
+    std::fs::metadata(path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+/// Lists the `.db` snapshots in `backup_dir`, newest first.
+pub fn list_backups(backup_dir: &Path) -> Vec<BackupInfo> {
+    let mut out: Vec<BackupInfo> = std::fs::read_dir(backup_dir)
+        .map(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().map(|x| x == "db").unwrap_or(false))
+                .filter_map(|e| {
+                    let path = e.path();
+                    let name = path.file_name()?.to_string_lossy().to_string();
+                    let size = e.metadata().ok()?.len();
+                    Some(BackupInfo {
+                        created_at: created_at_of(&name, &path),
+                        name,
+                        path: path.to_string_lossy().to_string(),
+                        size,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    out.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    out
+}
+
+/// The file-level half of a restore: copy the live database aside so the swap is
+/// itself recoverable, overwrite it with `backup_path`, and drop any stale
+/// `-wal`/`-shm` left beside it (a WAL from the *replaced* file would corrupt
+/// the swap). The caller must have already closed the live connection; the
+/// database is reopened by the caller afterwards.
+pub fn restore_files(db_path: &Path, backup_path: &Path, backup_dir: &Path) -> Result<(), String> {
+    if db_path.exists() {
+        std::fs::create_dir_all(backup_dir).map_err(|e| e.to_string())?;
+        let stamp = now_ms();
+        let safety = backup_dir.join(format!("thoughttree-{stamp}-prerestore.db"));
+        std::fs::copy(db_path, &safety).map_err(|e| e.to_string())?;
+    }
+    std::fs::copy(backup_path, db_path).map_err(|e| e.to_string())?;
+    let _ = std::fs::remove_file(db_path.with_extension("db-wal"));
+    let _ = std::fs::remove_file(db_path.with_extension("db-shm"));
+    Ok(())
 }
 
 #[cfg(test)]
@@ -418,5 +495,223 @@ mod tests {
             Some("Ctrl+Alt+K")
         );
         assert_eq!(all_settings(&conn).unwrap().len(), 1);
+    }
+
+    // --- Feature 5: import + restore ------------------------------------
+
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use crate::commands::read_import;
+
+    static TEST_DIR_SEQ: AtomicUsize = AtomicUsize::new(0);
+
+    /// A unique, empty directory under the system temp dir for file-backed tests.
+    fn temp_dir(tag: &str) -> PathBuf {
+        let seq = TEST_DIR_SEQ.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!(
+            "thoughttree-{tag}-{}-{seq}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn write_file(dir: &Path, name: &str, contents: &str) -> PathBuf {
+        let path = dir.join(name);
+        std::fs::write(&path, contents).unwrap();
+        path
+    }
+
+    fn sample_export(nodes: &[Node], edges: &[Edge]) -> String {
+        serde_json::json!({
+            "app": "ThoughtTree",
+            "format": "thoughttree.export",
+            "version": 1,
+            "exported_at": 123,
+            "nodes": nodes,
+            "edges": edges,
+        })
+        .to_string()
+    }
+
+    #[test]
+    fn list_backups_returns_newest_first() {
+        let dir = temp_dir("list-backups");
+        std::fs::write(dir.join("thoughttree-100.db"), b"old").unwrap();
+        std::fs::write(dir.join("thoughttree-300.db"), b"newest").unwrap();
+        std::fs::write(dir.join("thoughttree-200.db"), b"middle").unwrap();
+        // Not a database snapshot; must be ignored.
+        std::fs::write(dir.join("notes.txt"), b"ignore me").unwrap();
+
+        let backups = list_backups(&dir);
+        assert_eq!(backups.len(), 3);
+        assert_eq!(
+            backups.iter().map(|b| b.created_at).collect::<Vec<_>>(),
+            vec![300, 200, 100]
+        );
+        assert_eq!(backups[0].name, "thoughttree-300.db");
+        assert!(backups[0].path.ends_with("thoughttree-300.db"));
+        assert_eq!(backups[0].size, "newest".len() as u64);
+    }
+
+    #[test]
+    fn read_import_rejects_wrong_format_and_accepts_a_valid_file() {
+        let dir = temp_dir("read-import");
+        let bad = write_file(
+            &dir,
+            "bad.json",
+            r#"{"format":"something.else","version":1,"nodes":[],"edges":[]}"#,
+        );
+        assert_eq!(
+            read_import(bad.to_string_lossy().to_string()).unwrap_err(),
+            "error.importFormat"
+        );
+
+        let missing = write_file(&dir, "missing.json", r#"{"nodes":[],"edges":[]}"#);
+        assert_eq!(
+            read_import(missing.to_string_lossy().to_string()).unwrap_err(),
+            "error.importFormat"
+        );
+
+        let payload = sample_export(&[node("a", None, true)], &[]);
+        let good = write_file(&dir, "good.json", &payload);
+        let snapshot = read_import(good.to_string_lossy().to_string()).unwrap();
+        assert_eq!(snapshot.nodes.len(), 1);
+        assert_eq!(snapshot.nodes[0].id, "a");
+        assert!(snapshot.edges.is_empty());
+
+        // The marker is the only required field: a minimal file is still read.
+        let minimal = write_file(
+            &dir,
+            "minimal.json",
+            &format!(
+                r#"{{"format":"thoughttree.export","nodes":[{}]}}"#,
+                serde_json::to_string(&node("b", None, true)).unwrap()
+            ),
+        );
+        let snapshot = read_import(minimal.to_string_lossy().to_string()).unwrap();
+        assert_eq!(snapshot.nodes.len(), 1);
+        assert_eq!(snapshot.nodes[0].id, "b");
+    }
+
+    #[test]
+    fn import_merge_adds_new_ids_and_overwrites_existing_ones() {
+        let mut conn = open_in_memory().unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![node("keep", None, true), node("conflict", None, true)],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        // The file carries a brand new id and a conflicting one, but not `keep`.
+        let mut overwritten = node("conflict", None, false);
+        overwritten.text = "from the file".to_string();
+        let imported = Snapshot {
+            nodes: vec![node("fresh", None, true), overwritten],
+            edges: vec![],
+        };
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: imported.nodes.clone(),
+                upsert_edges: imported.edges.clone(),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        let snap = load(&conn).unwrap();
+        assert_eq!(snap.nodes.len(), 3);
+        assert!(snap.nodes.iter().any(|n| n.id == "fresh"));
+        assert!(snap.nodes.iter().any(|n| n.id == "keep"));
+        let conflict = snap.nodes.iter().find(|n| n.id == "conflict").unwrap();
+        assert_eq!(conflict.text, "from the file");
+    }
+
+    #[test]
+    fn backup_rotate_folds_the_wal_into_the_copy() {
+        let dir = temp_dir("rotate");
+        let db_path = dir.join("thoughttree.db");
+        let backup_dir = dir.join("backups");
+        let mut conn = open(&db_path).unwrap();
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![node("a", None, true)],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        // The row is only in the WAL at this point; a copy of the main file made
+        // without a checkpoint would be missing it.
+        backup_rotate(&conn, &db_path, &backup_dir, 5);
+        drop(conn);
+
+        let copy = std::fs::read_dir(&backup_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .next()
+            .expect("a backup copy was written");
+        let copied = open(&copy).unwrap();
+        let snap = load(&copied).unwrap();
+        assert_eq!(snap.nodes.len(), 1);
+        assert_eq!(snap.nodes[0].id, "a");
+    }
+
+    #[test]
+    fn restore_files_swaps_the_data_and_leaves_no_wal() {
+        let dir = temp_dir("restore");
+        let db_path = dir.join("thoughttree.db");
+        let backup_dir = dir.join("backups");
+
+        // The live database, and a snapshot holding different data.
+        let mut live = open(&db_path).unwrap();
+        apply(
+            &mut live,
+            &Changes {
+                upsert_nodes: vec![node("live", None, true)],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        drop(live);
+
+        std::fs::create_dir_all(&backup_dir).unwrap();
+        let backup_path = backup_dir.join("thoughttree-1.db");
+        {
+            let mut backup = open(&backup_path).unwrap();
+            apply(
+                &mut backup,
+                &Changes {
+                    upsert_nodes: vec![node("from-backup", None, true)],
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        }
+
+        // Stale sidecar files from the file about to be replaced; they must not
+        // survive the swap.
+        std::fs::write(db_path.with_extension("db-wal"), b"stale").unwrap();
+        std::fs::write(db_path.with_extension("db-shm"), b"stale").unwrap();
+
+        restore_files(&db_path, &backup_path, &backup_dir).unwrap();
+
+        assert!(!db_path.with_extension("db-wal").exists());
+        assert!(!db_path.with_extension("db-shm").exists());
+        // A safety copy of the replaced file was taken.
+        assert!(list_backups(&backup_dir).iter().any(|b| b.name.contains("prerestore")));
+
+        let restored = open(&db_path).unwrap();
+        let snap = load(&restored).unwrap();
+        assert_eq!(snap.nodes.len(), 1);
+        assert_eq!(snap.nodes[0].id, "from-backup");
     }
 }

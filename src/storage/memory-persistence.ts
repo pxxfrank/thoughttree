@@ -7,6 +7,10 @@ export class MemoryPersistence implements Persistence {
   applied: Changes[] = []
   failNext = false
   exportedPath: string | null = null
+  /** What the next `readImport` returns (e.g. a file the test staged). */
+  imported: Snapshot = { nodes: [], edges: [] }
+  importedPath: string | null = null
+  failImport = false
   settings: Record<string, string> = {}
   shortcuts: string[] = []
   private handlers = new Set<(changes: Changes) => void>()
@@ -52,6 +56,12 @@ export class MemoryPersistence implements Persistence {
   async exportJson(): Promise<string | null> {
     this.exportedPath = 'export.json'
     return this.exportedPath
+  }
+
+  async readImport(path: string): Promise<Snapshot> {
+    if (this.failImport) throw new Error('error.importFormat')
+    this.importedPath = path
+    return { nodes: [...this.imported.nodes], edges: [...this.imported.edges] }
   }
 
   async dataDirectory(): Promise<string> {

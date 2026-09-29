@@ -52,6 +52,10 @@ export class TauriPersistence implements Persistence {
     return invoke<string>('export_data', { path: target })
   }
 
+  readImport(path: string): Promise<Snapshot> {
+    return invoke<Snapshot>('read_import', { path })
+  }
+
   dataDirectory(): Promise<string> {
     return invoke<string>('data_dir')
   }

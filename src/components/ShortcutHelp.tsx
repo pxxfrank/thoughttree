@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { open } from '@tauri-apps/plugin-dialog'
 import { LOCALES, useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { DEFAULT_SHORTCUT } from '../state/store'
+import { listBackups, restoreBackup, type BackupInfo } from '../storage/desktop-actions'
 import { THEMES } from '../theme/theme'
 
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta', 'ContextMenu'])
@@ -26,6 +28,23 @@ function toAccelerator(event: ReactKeyboardEvent<HTMLInputElement>): string | nu
   if (!key) return null
   parts.push(key)
   return parts.join('+')
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+/** A locale-aware "3 hours ago" from an epoch-millisecond timestamp. */
+function relativeTime(createdAt: number, locale: string): string {
+  const seconds = Math.round((createdAt - Date.now()) / 1000)
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const abs = Math.abs(seconds)
+  if (abs < 60) return format.format(seconds, 'second')
+  if (abs < 3600) return format.format(Math.round(seconds / 60), 'minute')
+  if (abs < 86400) return format.format(Math.round(seconds / 3600), 'hour')
+  return format.format(Math.round(seconds / 86400), 'day')
 }
 
 function ShortcutRecorder() {
@@ -73,6 +92,60 @@ function ShortcutRecorder() {
   )
 }
 
+/** The rotating `.db` snapshots, each restorable in one click. */
+function Backups() {
+  const store = useStore()
+  const { t, locale } = useI18n()
+  const [backups, setBackups] = useState<BackupInfo[]>([])
+
+  const refresh = useCallback(async () => {
+    try {
+      setBackups(await listBackups())
+    } catch {
+      setBackups([])
+    }
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  const restore = async (info: BackupInfo) => {
+    if (!window.confirm(t('help.restore.confirm'))) return
+    try {
+      store.restoreSnapshot(await restoreBackup(info.path))
+    } catch (error) {
+      store.toast('toast.restoreFailed', 'error', { error: String(error) })
+    }
+  }
+
+  return (
+    <div className="field" style={{ marginBottom: 0 }}>
+      <div className="field-label">{t('help.backups')}</div>
+      <div className="hint" style={{ marginBottom: 8 }}>
+        {t('help.backups.hint')}
+      </div>
+      {backups.length === 0 ? (
+        <div className="hint">{t('help.backup.none')}</div>
+      ) : (
+        backups.map((info) => (
+          <div key={info.path} className="settings-row" style={{ marginBottom: 6 }}>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {info.name}
+            </span>
+            <span className="hint" style={{ whiteSpace: 'nowrap' }}>
+              {relativeTime(info.created_at, locale)} · {formatSize(info.size)}
+            </span>
+            <button className="btn" onClick={() => void restore(info)}>
+              {t('help.restore')}
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
 export function ShortcutHelp({ onClose }: { onClose: () => void }) {
   const store = useStore()
   const state = useAppState()
@@ -95,6 +168,22 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
     ['Ctrl+Z / Ctrl+Shift+Z', t('keys.undo')],
     ['Esc', t('keys.escape')],
   ]
+
+  const handleImport = async () => {
+    try {
+      const selection = await open({
+        multiple: false,
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      })
+      if (typeof selection !== 'string') return
+      store.importSnapshot(await store.readImport(selection))
+    } catch (error) {
+      // The backend reports a bad file as the `error.importFormat` key; anything
+      // else is an unexpected failure.
+      const key = String(error)
+      store.toast(key.startsWith('error.') ? key : 'toast.importFailed', 'error')
+    }
+  }
 
   return (
     <div className="backdrop" onClick={onClose}>
@@ -170,17 +259,24 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
             </table>
           </div>
 
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <div className="field-label">{t('help.data')}</div>
             <div className="hint" style={{ marginBottom: 8 }}>
               {state.dataDir || t('help.dataFolder')}
               <br />
               {t('help.data.hint')}
             </div>
-            <button className="btn" onClick={() => void store.exportJson()}>
-              {t('help.export')}
-            </button>
+            <div className="settings-row">
+              <button className="btn" onClick={() => void store.exportJson()}>
+                {t('help.export')}
+              </button>
+              <button className="btn" onClick={() => void handleImport()}>
+                {t('help.import')}
+              </button>
+            </div>
           </div>
+
+          <Backups />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   captureMutation,
   deleteMutation,
   expandAncestorsMutation,
+  importMutation,
   placeMutation,
   setConclusionMutation,
   setNoteMutation,
@@ -570,6 +571,39 @@ export class AppStore {
     } catch (error) {
       this.toast('toast.exportFailed', 'error', { error: String(error) })
     }
+  }
+
+  /** Reads an exported file. Read-only: it never touches the database. */
+  readImport(path: string): Promise<Snapshot> {
+    return this.persistence.readImport(path)
+  }
+
+  /**
+   * Merges an exported snapshot into the tree. It runs through the normal commit
+   * path, so it is a single undoable entry that is broadcast and persisted like
+   * any other edit.
+   */
+  importSnapshot(snapshot: Snapshot): void {
+    const mutation = importMutation(this.ctx(), snapshot)
+    if (!mutation) return
+    this.commit(mutation)
+    this.toast('toast.imported', 'info', { n: snapshot.nodes.length })
+  }
+
+  /**
+   * Replaces the whole graph with a restored database. This is deliberately not
+   * a `Mutation`: swapping the database file is a new starting point rather than
+   * an edit, so the history is cleared instead of left pointing at edits whose
+   * backward changesets no longer describe this graph (DECISIONS.md, D029).
+   */
+  restoreSnapshot(snapshot: Snapshot): void {
+    const entities = fromSnapshot(snapshot)
+    this.undoStack = []
+    this.redoStack = []
+    this.state = { ...this.state, nodes: entities.nodes, edges: entities.edges }
+    this.syncHistory()
+    this.notify()
+    this.toast('toast.restored', 'info')
   }
 
   async setShortcut(accel: string): Promise<void> {

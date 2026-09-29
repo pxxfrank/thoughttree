@@ -14,6 +14,12 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 /// free by default and matches what other capture-first apps use.
 pub const DEFAULT_SHORTCUT: &str = "Ctrl+Shift+Space";
 
+/// `Alt+Space` opens the Windows system menu. `RegisterHotKey` reports success
+/// for it but the hotkey is never delivered, so it is a value that *looks* set
+/// and is silently dead. An earlier build defaulted to it and a *Reset* button
+/// wrote it into settings; recognising it here lets us heal that stale value.
+const DEAD_SHORTCUT: &str = "Alt+Space";
+
 const ORB_MARGIN: i32 = 8;
 const ORB_PEEK_VISIBLE: i32 = 10;
 const ORB_SIZE: f64 = 64.0;
@@ -377,6 +383,13 @@ pub fn current_shortcut_accel(app: &AppHandle) -> String {
         .unwrap_or(None);
     match stored {
         Some(v) if v.is_empty() => String::new(),
+        // A stale `Alt+Space` outlives the fix that moved the default off it,
+        // because a *Reset* button persisted the old value. Fall back to the
+        // default and heal the row so the correction happens exactly once.
+        Some(v) if v.trim() == DEAD_SHORTCUT => {
+            let _ = db.with(|conn| db::set_setting(conn, "shortcut", DEFAULT_SHORTCUT));
+            DEFAULT_SHORTCUT.to_string()
+        }
         Some(v) => v,
         None => DEFAULT_SHORTCUT.to_string(),
     }

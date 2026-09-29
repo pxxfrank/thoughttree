@@ -84,6 +84,21 @@ export interface AppState extends EntityState {
 const HISTORY_LIMIT = 200
 export const DEFAULT_SHORTCUT = 'Ctrl+Shift+Space'
 
+/**
+ * `Alt+Space` opens the Windows system menu: `RegisterHotKey` reports success
+ * but the hotkey is never delivered (D026). An earlier build defaulted to it and
+ * a *Reset* button persisted it, so the dead value outlived the fix and now
+ * sits in `settings` overriding the default. Nothing can have chosen it on
+ * purpose, so treat it as unset.
+ */
+const DEAD_SHORTCUTS = new Set(['Alt+Space'])
+
+export function resolveShortcut(stored: string | undefined): string {
+  const candidate = stored?.trim()
+  if (!candidate || DEAD_SHORTCUTS.has(candidate)) return DEFAULT_SHORTCUT
+  return candidate
+}
+
 function initialState(): AppState {
   return {
     nodes: {},
@@ -274,7 +289,7 @@ export class AppStore {
       const storedLocale = settings['locale']
       const storedTheme = settings['theme']
       this.patch({
-        shortcut: settings['shortcut'] ?? DEFAULT_SHORTCUT,
+        shortcut: resolveShortcut(settings['shortcut']),
         locale:
           storedLocale === 'en' || storedLocale === 'zh' ? storedLocale : this.state.locale,
         theme:

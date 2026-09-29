@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryPersistence } from '../storage/memory-persistence'
-import { AppStore } from './store'
+import { AppStore, DEFAULT_SHORTCUT, resolveShortcut } from './store'
 import type { Changes } from '../domain/types'
 
 function makeStore() {
@@ -14,6 +14,27 @@ async function ready() {
   await ctx.store.init()
   return ctx
 }
+
+describe('a stored shortcut that can never fire', () => {
+  it('reads the old Alt+Space default as unset', () => {
+    expect(resolveShortcut('Alt+Space')).toBe(DEFAULT_SHORTCUT)
+    expect(resolveShortcut('  Alt+Space  ')).toBe(DEFAULT_SHORTCUT)
+    expect(resolveShortcut(undefined)).toBe(DEFAULT_SHORTCUT)
+    expect(resolveShortcut('')).toBe(DEFAULT_SHORTCUT)
+  })
+
+  it('keeps a shortcut someone chose on purpose', () => {
+    expect(resolveShortcut('Ctrl+Alt+T')).toBe('Ctrl+Alt+T')
+  })
+
+  it('is corrected on load, not shown as the dead value', async () => {
+    const persistence = new MemoryPersistence()
+    await persistence.writeSetting('shortcut', 'Alt+Space')
+    const store = new AppStore(persistence)
+    await store.init()
+    expect(store.getState().shortcut).toBe(DEFAULT_SHORTCUT)
+  })
+})
 
 describe('capture → inbox', () => {
   it('lands in the inbox and is persisted', async () => {

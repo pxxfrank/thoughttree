@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { LOCALES, useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
+import { DEFAULT_SHORTCUT } from '../state/store'
 import { THEMES } from '../theme/theme'
 
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta', 'ContextMenu'])
@@ -65,7 +66,7 @@ function ShortcutRecorder() {
           void store.setShortcut(accelerator)
         }}
       />
-      <button className="btn" onClick={() => void store.setShortcut('Alt+Space')}>
+      <button className="btn" onClick={() => void store.setShortcut(DEFAULT_SHORTCUT)}>
         {t('help.shortcut.reset')}
       </button>
     </div>

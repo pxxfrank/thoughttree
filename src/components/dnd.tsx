@@ -64,6 +64,13 @@ export function DndProvider({
   const [pointer, setPointer] = useState({ x: 0, y: 0 })
   const { t } = useI18n()
 
+  // While a drag is in flight, no selection may start anywhere — including over
+  // text that is not itself a drag handle.
+  useEffect(() => {
+    document.body.classList.toggle('drag-active', payload !== null)
+    return () => document.body.classList.remove('drag-active')
+  }, [payload])
+
   const payloadRef = useRef<DragPayload | null>(null)
   const targetRef = useRef<DropTarget | null>(null)
   const origin = useRef<{ x: number; y: number } | null>(null)

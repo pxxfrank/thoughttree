@@ -3,7 +3,17 @@ import { canReparent, descendantIds, indexChildren, orderWithMany } from './tree
 import { emptyChanges, newId, nowMs } from './types'
 import type { Changes, Edge, Node, Priority, RelationType, Status } from './types'
 
-export class DomainError extends Error {}
+/**
+ * A rejected edit. It carries a translation key rather than a message, because
+ * these reach the user: an untranslated English string inside a Chinese UI is
+ * exactly what the i18n layer exists to prevent.
+ */
+export class DomainError extends Error {
+  constructor(public readonly key: string) {
+    super(key)
+    this.name = 'DomainError'
+  }
+}
 
 /** A reversible edit: the forward changeset plus the changeset that undoes it. */
 export interface Mutation {
@@ -261,7 +271,7 @@ export function placeMutation(
   if (moves.length === 0) return null
   for (const id of moves) {
     if (!canReparent(ctx.nodes, id, newParentId)) {
-      throw new DomainError('A question cannot be moved inside itself')
+      throw new DomainError('error.moveInsideSelf')
     }
   }
 

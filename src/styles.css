@@ -107,6 +107,14 @@
   box-sizing: border-box;
 }
 
+/* Nothing is selectable while a question is being dragged: the pointer is a
+   drag handle for the duration, and any selection it paints is an accident. */
+body.drag-active,
+body.drag-active * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
 html,
 body,
 #root {
@@ -345,6 +353,10 @@ textarea {
   position: relative;
   cursor: default;
   min-height: 26px;
+  /* Rows are drag handles. Selecting their text on the way past is never what
+     the user meant, and it also feeds the drag as a text selection. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .row:hover {
@@ -501,6 +513,9 @@ textarea {
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: default;
+  /* Same reason as .row: this is a drag handle, not a paragraph. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .inbox-item:hover {
   background: var(--panel-2);

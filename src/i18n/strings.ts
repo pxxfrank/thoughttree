@@ -164,6 +164,8 @@ const en: Dict = {
     'Global shortcut “{accel}” is taken by another program, so quick capture cannot be triggered from outside the app. Choose a different one in the ? Keys dialog. You can still capture from the orb.',
   'toast.saveFailed': 'Could not save — change reverted ({error})',
   'toast.domainError': 'Could not do that: {error}',
+
+  'error.moveInsideSelf': 'A question cannot be moved inside itself.',
   'toast.orbPosition': 'Orb position saved',
 
   'app.opening': 'Opening your local database…',
@@ -336,6 +338,8 @@ const zh: Dict = {
     '全局快捷键「{accel}」已被其他程序占用，无法从应用外触发快速记录。请在「? 快捷键」对话框里换一个组合键。你仍然可以点击悬浮球记录。',
   'toast.saveFailed': '保存失败，改动已回滚（{error}）',
   'toast.domainError': '无法完成该操作：{error}',
+
+  'error.moveInsideSelf': '一个问题不能移动到它自己内部。',
   'toast.orbPosition': '悬浮球位置已保存',
 
   'app.opening': '正在打开本地数据库…',

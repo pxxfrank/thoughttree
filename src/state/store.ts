@@ -60,7 +60,7 @@ export interface AppState extends EntityState {
 }
 
 const HISTORY_LIMIT = 200
-export const DEFAULT_SHORTCUT = 'Alt+Space'
+export const DEFAULT_SHORTCUT = 'Ctrl+Shift+Space'
 
 function initialState(): AppState {
   return {
@@ -200,8 +200,11 @@ export class AppStore {
   }
 
   private fail(error: unknown): void {
-    const message = error instanceof DomainError ? error.message : String(error)
-    this.toast('toast.domainError', 'warn', { error: message })
+    if (error instanceof DomainError) {
+      this.toast(error.key, 'warn')
+      return
+    }
+    this.toast('toast.domainError', 'warn', { error: String(error) })
   }
 
   // --- lifecycle ----------------------------------------------------------

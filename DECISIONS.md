@@ -459,4 +459,30 @@ message.
 
 **Date**: 2026-09-29
 
+---
+
+## D027 — Rows are drag handles, so their text is not selectable
+
+**Decision**: `user-select: none` on tree rows and inbox items, plus the whole
+document while a drag is actually in flight.
+
+**Reason**: A drag starts on the row's text, so sweeping the pointer across rows
+painted a text selection behind the cursor — noisy, and it reads as the app
+doing something unintended. The row is a handle, not a paragraph.
+
+The second half matters because a drag crosses things that are *not* handles
+(panel hints, empty space). Suppressing selection only on the handles would
+still let a selection start mid-drag.
+
+**Accepted cost**: you can no longer select a question's text in the tree or the
+inbox to copy it. The detail panel's fields remain fully selectable, which is
+where copying actually happens.
+
+**Also fixed**: a domain rejection reached the user as untranslated English
+inside a Chinese UI ("无法完成该操作：A question cannot be moved inside itself").
+`DomainError` now carries a translation key rather than a message — the domain
+layer should never own display text, and an error path is still user-facing.
+
+**Date**: 2026-09-29
+
 

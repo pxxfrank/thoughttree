@@ -209,7 +209,11 @@ describe('place', () => {
 
   it('refuses to move a question inside its own subtree', () => {
     const context = ctx([n('a'), n('b', { parent_id: 'a' })])
-    expect(() => placeMutation(context, ['a'], 'b', ['a'], T0)).toThrow(DomainError)
+    const attempt = () => placeMutation(context, ['a'], 'b', ['a'], T0)
+    expect(attempt).toThrow(DomainError)
+    // The message is a translation key: these reach the user, so the domain
+    // must not own the wording.
+    expect(attempt).toThrow('error.moveInsideSelf')
   })
 
   it('moves several questions as a contiguous block', () => {

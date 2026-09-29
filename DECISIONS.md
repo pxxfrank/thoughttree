@@ -485,4 +485,37 @@ layer should never own display text, and an error path is still user-facing.
 
 **Date**: 2026-09-29
 
+---
+
+## D028 — Store methods are bound in the constructor
+
+**Decision**: The `AppStore` constructor binds every method on its prototype to
+the instance.
+
+**Reason**: Methods were handed to React as bare references —
+`onClick={store.toggleFocusMode}` — and React invokes a handler without a
+receiver, so `this` is `undefined` inside it. The handler threw
+`TypeError: Cannot read properties of undefined (reading 'patch')` and the click
+did nothing. Nothing surfaced: not in the UI, not in the test suite, not in
+review. The button simply appeared dead, and the only way to see it was to open
+the webview console, which a packaged build does not have.
+
+This is how the Focus button was reported: "clicking it does nothing". The
+keyboard path worked throughout (`useKeyboard` calls `store.toggleFocusMode()`
+with a receiver), which made it look like a filtering bug rather than a click
+bug — and I chased the filtering logic for two rounds before checking how the
+handler was actually invoked.
+
+Binding the whole prototype once makes the class of bug impossible, rather than
+fixing five call sites and leaving the trap for the next method. A regression
+test calls the methods detached, which is exactly React's calling convention;
+without the binding it fails with the same `TypeError`.
+
+**Affected**: `toggleFocusMode`, `undo`, `redo`, `dismissToast`, `skipExplain`.
+The last one matters historically: the earlier "Skip for now is stuck" report
+had *two* causes — the popover was unreachable behind its scrim (D020) *and* its
+handler would have thrown even if reached.
+
+**Date**: 2026-09-29
+
 

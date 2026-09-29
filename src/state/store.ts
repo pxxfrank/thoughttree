@@ -103,7 +103,22 @@ export class AppStore {
   private writeChain: Promise<void> = Promise.resolve()
   private toastSeq = 0
 
-  constructor(private persistence: Persistence) {}
+  constructor(private persistence: Persistence) {
+    // Public methods are handed around as React handlers, which invoke them
+    // without a receiver: `onClick={store.undo}` calls `undo()` with
+    // `this === undefined`. The handler then throws, the click does nothing,
+    // and nothing surfaces in the UI, in tests, or in review. Binding the whole
+    // prototype once makes that class of bug impossible.
+    const prototype = Object.getPrototypeOf(this) as Record<string, unknown>
+    const self = this as unknown as Record<string, unknown>
+    for (const name of Object.getOwnPropertyNames(prototype)) {
+      if (name === 'constructor') continue
+      const value = self[name]
+      if (typeof value === 'function') {
+        self[name] = (value as CallableFunction).bind(this)
+      }
+    }
+  }
 
   // --- plumbing -----------------------------------------------------------
 

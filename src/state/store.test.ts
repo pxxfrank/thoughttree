@@ -220,6 +220,23 @@ describe('undo / redo', () => {
     expect(store.getState().theme).toBe('dark')
     expect(persistence.settings['theme']).toBe('dark')
   })
+
+  it('survives being called as a detached handler', async () => {
+    const { store } = await ready()
+    // This is how React calls them: `onClick={store.someMethod}` invokes the
+    // function without a receiver. If the method is not bound, `this` is
+    // undefined and the click silently throws — which is exactly how the Focus
+    // button appeared dead.
+    const toggleFocusMode = store.toggleFocusMode
+    toggleFocusMode()
+    expect(store.getState().focusMode).toBe(true)
+    const undo = store.undo
+    undo()
+    const dismissToast = store.dismissToast
+    dismissToast()
+    const skipExplain = store.skipExplain
+    skipExplain()
+  })
 })
 
 describe('inbox is separate from the tree', () => {

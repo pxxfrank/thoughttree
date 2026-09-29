@@ -52,7 +52,12 @@ const en: Dict = {
   'empty.detail':
     'Select a question to see its status, its relation to its parent, and your notes.',
   'empty.focus':
-    'Nothing is marked important and open. Star a question with Ctrl+I to pull it back into focus.',
+    'Nothing in the tree is both ★ important and still open, so there is nothing to focus on yet.',
+  'focus.how':
+    'Focus shows only the ★ important questions that are still open, plus the ancestors that give them context.',
+  'focus.starred':
+    '{n} starred question(s) are still in the Inbox — they are not in the tree yet, so Focus does not count them.',
+  'focus.goInbox': 'Leave focus and file them',
 
   'inbox.grip': 'Drag into the tree',
   'inbox.selected': '{n} selected',
@@ -228,7 +233,10 @@ const zh: Dict = {
   'empty.inbox': '收集箱是空的。所有随手记下的想法都先落在这里，不分类、不过滤。',
   'empty.inboxHint': '把条目拖进研究树，或者多选后一起归档。',
   'empty.detail': '选中一个问题，就能看到它的状态、它与父问题的关系，以及你的笔记。',
-  'empty.focus': '没有标记为「重要且未完成」的问题。按 Ctrl+I 把某个问题拉回焦点。',
+  'empty.focus': '研究树里还没有「★ 重要且未完成」的问题，所以聚焦暂时没有内容。',
+  'focus.how': '聚焦只显示「★ 重要且未完成」的问题，以及给它们提供上下文的父级问题。',
+  'focus.starred': '有 {n} 条 ★ 重要的问题还在收集箱里 —— 它们还没进研究树，所以聚焦不算它们。',
+  'focus.goInbox': '退出聚焦，去收集箱处理',
 
   'inbox.grip': '拖入研究树',
   'inbox.selected': '已选 {n} 项',

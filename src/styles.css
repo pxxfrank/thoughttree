@@ -590,6 +590,21 @@ textarea {
   margin-bottom: 22px;
 }
 
+/* Names the reason Focus looks empty and offers the way back to the Inbox. */
+.focus-callout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  margin-bottom: 18px;
+  border: 1px solid var(--important-line);
+  background: var(--important-soft);
+  border-radius: var(--radius);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .focus-list {
   list-style: none;
   margin: 0;
@@ -997,7 +1012,6 @@ kbd {
 }
 
 /* ---------- drag & drop targets ---------- */
-
 .root-drop {
   height: 26px;
   border-radius: var(--radius-sm);

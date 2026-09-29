@@ -49,6 +49,21 @@ export function useFocusList() {
   return useMemo(() => focusList(Object.values(nodes)), [nodes])
 }
 
+/**
+ * Starred questions that are still unfiled. Focus mode only looks at the tree,
+ * so these are the usual reason it looks empty right after you start using it.
+ */
+export function useStarredInInbox() {
+  const { nodes } = useAppState()
+  return useMemo(
+    () =>
+      inboxOrder(Object.values(nodes)).filter(
+        (node) => node.priority === 'important' && node.status === 'open',
+      ),
+    [nodes],
+  )
+}
+
 export function useEdgeFor(nodeId: string | null) {
   const { edges } = useAppState()
   return useMemo(

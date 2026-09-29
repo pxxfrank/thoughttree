@@ -1,3 +1,102 @@
+:root,
+:root[data-theme='dark'] {
+  --bg: #0e1016;
+  --panel: #14171f;
+  --panel-2: #191d27;
+  --panel-3: #1e2331;
+  --border: #232838;
+  --border-soft: #1c2130;
+  --border-strong: #2f3650;
+  --text: #e8eaf2;
+  --text-dim: #b3b8c8;
+  --muted: #7d839a;
+  --faint: #565c72;
+  --dim: #3c4358;
+
+  --accent: #35d08a;
+  --accent-soft: rgba(53, 208, 138, 0.14);
+  --accent-line: rgba(53, 208, 138, 0.55);
+  --accent-text: #8ce7bd;
+  --accent-glow: rgba(53, 208, 138, 0.22);
+
+  --important: #ffc65c;
+  --important-soft: rgba(255, 198, 92, 0.14);
+  --important-line: rgba(255, 198, 92, 0.4);
+  --important-text: #fdf4e3;
+  --done: #57c88a;
+  --done-soft: rgba(87, 200, 138, 0.14);
+  --done-line: rgba(87, 200, 138, 0.4);
+  --later: #8b93ad;
+  --danger: #ff6b6b;
+  --danger-line: rgba(255, 107, 107, 0.45);
+  --danger-text: #ffb3b3;
+  --warn: #f0a44a;
+  --warn-line: rgba(240, 164, 74, 0.45);
+  --warn-text: #ffd39a;
+
+  --hover: #262c3d;
+  --hover-2: #333a4e;
+  --input-bg: #232839;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --shadow-strong: rgba(0, 0, 0, 0.6);
+  --scrim: rgba(6, 8, 13, 0.6);
+  --brand-from: #38405f;
+  --brand-to: #1c2030;
+
+  --radius: 8px;
+  --radius-sm: 5px;
+  --font: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+  --mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f5f6;
+  --panel: #ffffff;
+  --panel-2: #fafbfb;
+  --panel-3: #f1f3f4;
+  --border: #e5e8ea;
+  --border-soft: #eef0f2;
+  --border-strong: #d6dce0;
+  --text: #1f2328;
+  --text-dim: #495057;
+  --muted: #7b838c;
+  --faint: #9aa2ab;
+  --dim: #c8ced4;
+
+  --accent: #0fa968;
+  --accent-soft: rgba(15, 169, 104, 0.1);
+  --accent-line: rgba(15, 169, 104, 0.42);
+  --accent-text: #0a7a4a;
+  --accent-glow: rgba(15, 169, 104, 0.18);
+
+  --important: #d98d1f;
+  --important-soft: rgba(217, 141, 31, 0.12);
+  --important-line: rgba(217, 141, 31, 0.38);
+  --important-text: #8a5a10;
+  --done: #0fa968;
+  --done-soft: rgba(15, 169, 104, 0.1);
+  --done-line: rgba(15, 169, 104, 0.38);
+  --later: #8d949c;
+  --danger: #d93a3f;
+  --danger-line: rgba(217, 58, 63, 0.38);
+  --danger-text: #a82a2f;
+  --warn: #c47a1c;
+  --warn-line: rgba(196, 122, 28, 0.38);
+  --warn-text: #8a5a10;
+
+  --hover: #eceff1;
+  --hover-2: #e1e5e8;
+  --input-bg: #ffffff;
+  --shadow: rgba(20, 30, 45, 0.08);
+  --shadow-strong: rgba(20, 30, 45, 0.16);
+  --scrim: rgba(20, 30, 45, 0.26);
+  --brand-from: #e4f5ec;
+  --brand-to: #cdeadd;
+
+  color-scheme: light;
+}
+
 html,
 body,
 #orb-root {
@@ -11,11 +110,11 @@ body,
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 26%, #2f3856 0%, #171b26 62%, #12141c 100%);
-  border: 1px solid #3b4463;
+  background: radial-gradient(circle at 34% 26%, var(--panel-3) 0%, var(--panel-2) 60%, var(--panel) 100%);
+  border: 1px solid var(--border-strong);
   box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 4px 14px var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   display: grid;
   place-items: center;
   cursor: grab;
@@ -27,10 +126,10 @@ body,
 
 .orb:hover {
   transform: scale(1.06);
-  border-color: #6c7cff;
+  border-color: var(--accent);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.6),
-    0 0 0 3px rgba(108, 124, 255, 0.22);
+    0 8px 24px var(--shadow-strong),
+    0 0 0 3px var(--accent-glow);
 }
 
 .orb:active,
@@ -40,21 +139,21 @@ body,
 }
 
 .orb svg {
-  width: 58%;
-  height: 58%;
+  width: 44%;
+  height: 44%;
   pointer-events: none;
 }
 
 .orb .node {
-  fill: #e8eaf2;
+  fill: var(--text);
 }
 
 .orb .node.dim {
-  fill: #8b93ad;
+  fill: var(--muted);
 }
 
 .orb .link {
-  stroke: #6c7cff;
+  stroke: var(--accent);
   stroke-width: 2.1;
   stroke-linecap: round;
 }

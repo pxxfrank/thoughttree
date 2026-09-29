@@ -188,7 +188,13 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
    cannot be trusted to bring it on screen. Users on such a display should use
    `Alt+Space` (the floating capture window) instead. Fixing this properly needs
    the window measured in the same coordinate space the layout uses.
-9. **Automated UI-driving is unreliable in this environment.** Synthesised
+9. **The orb's appearance is unverified in this environment.** Its window is
+   present, visible, topmost and correctly sized, but its pixels never appear in
+   a screen capture — even with an opaque magenta background, and even with a
+   plain-HTML colour block on the page. That points at layered-window
+   compositing not reaching a BitBlt in a remote session rather than at the app.
+   It did render visibly in one earlier session. Verify on a normal desktop.
+10. **Automated UI-driving is unreliable in this environment.** Synthesised
    keystrokes are mangled by the active IME and absolute click coordinates
    disagree with `GetClientRect` (this shell is DPI-unaware, the app is
    per-monitor aware). Flows were therefore verified with a mix of real input,

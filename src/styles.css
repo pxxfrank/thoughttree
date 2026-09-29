@@ -1,28 +1,106 @@
-:root {
+/* Design tokens. Every colour used anywhere in the app resolves to one of
+   these, so a theme is a single block of overrides rather than a second
+   stylesheet.
+   Accent is flomo's green: calm and low-key, and it reads well on both a white
+   surface and a dark one. */
+
+:root,
+:root[data-theme='dark'] {
   --bg: #0e1016;
   --panel: #14171f;
   --panel-2: #191d27;
   --panel-3: #1e2331;
   --border: #232838;
   --border-soft: #1c2130;
+  --border-strong: #2f3650;
   --text: #e8eaf2;
   --text-dim: #b3b8c8;
   --muted: #7d839a;
   --faint: #565c72;
-  --accent: #6c7cff;
-  --accent-soft: rgba(108, 124, 255, 0.15);
-  --accent-line: rgba(108, 124, 255, 0.6);
+  --dim: #3c4358;
+
+  --accent: #35d08a;
+  --accent-soft: rgba(53, 208, 138, 0.14);
+  --accent-line: rgba(53, 208, 138, 0.55);
+  --accent-text: #8ce7bd;
+  --accent-glow: rgba(53, 208, 138, 0.22);
+
   --important: #ffc65c;
   --important-soft: rgba(255, 198, 92, 0.14);
+  --important-line: rgba(255, 198, 92, 0.4);
+  --important-text: #fdf4e3;
   --done: #57c88a;
+  --done-soft: rgba(87, 200, 138, 0.14);
+  --done-line: rgba(87, 200, 138, 0.4);
   --later: #8b93ad;
   --danger: #ff6b6b;
+  --danger-line: rgba(255, 107, 107, 0.45);
+  --danger-text: #ffb3b3;
   --warn: #f0a44a;
+  --warn-line: rgba(240, 164, 74, 0.45);
+  --warn-text: #ffd39a;
+
+  --hover: #262c3d;
+  --hover-2: #333a4e;
+  --input-bg: #232839;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --shadow-strong: rgba(0, 0, 0, 0.6);
+  --scrim: rgba(6, 8, 13, 0.6);
+  --brand-from: #38405f;
+  --brand-to: #1c2030;
+
   --radius: 8px;
   --radius-sm: 5px;
   --font: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
   --mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
   color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f5f6;
+  --panel: #ffffff;
+  --panel-2: #fafbfb;
+  --panel-3: #f1f3f4;
+  --border: #e5e8ea;
+  --border-soft: #eef0f2;
+  --border-strong: #d6dce0;
+  --text: #1f2328;
+  --text-dim: #495057;
+  --muted: #7b838c;
+  --faint: #9aa2ab;
+  --dim: #c8ced4;
+
+  --accent: #0fa968;
+  --accent-soft: rgba(15, 169, 104, 0.1);
+  --accent-line: rgba(15, 169, 104, 0.42);
+  --accent-text: #0a7a4a;
+  --accent-glow: rgba(15, 169, 104, 0.18);
+
+  --important: #d98d1f;
+  --important-soft: rgba(217, 141, 31, 0.12);
+  --important-line: rgba(217, 141, 31, 0.38);
+  --important-text: #8a5a10;
+  --done: #0fa968;
+  --done-soft: rgba(15, 169, 104, 0.1);
+  --done-line: rgba(15, 169, 104, 0.38);
+  --later: #8d949c;
+  --danger: #d93a3f;
+  --danger-line: rgba(217, 58, 63, 0.38);
+  --danger-text: #a82a2f;
+  --warn: #c47a1c;
+  --warn-line: rgba(196, 122, 28, 0.38);
+  --warn-text: #8a5a10;
+
+  --hover: #eceff1;
+  --hover-2: #e1e5e8;
+  --input-bg: #ffffff;
+  --shadow: rgba(20, 30, 45, 0.08);
+  --shadow-strong: rgba(20, 30, 45, 0.16);
+  --scrim: rgba(20, 30, 45, 0.26);
+  --brand-from: #e4f5ec;
+  --brand-to: #cdeadd;
+
+  color-scheme: light;
 }
 
 * {
@@ -69,13 +147,13 @@ textarea {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #262c3d;
+  background: var(--hover);
   border-radius: 6px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #333a4e;
+  background: var(--hover-2);
   background-clip: content-box;
 }
 ::-webkit-scrollbar-corner {
@@ -118,7 +196,7 @@ textarea {
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  background: linear-gradient(160deg, #38405f, #1c2030);
+  background: linear-gradient(160deg, var(--brand-from), var(--brand-to));
   position: relative;
   flex: none;
 }
@@ -129,7 +207,7 @@ textarea {
   height: 3px;
   border-radius: 2px;
   background: var(--accent);
-  box-shadow: 0 5px 0 -1px #8b93ad;
+  box-shadow: 0 5px 0 -1px var(--later);
 }
 
 .spacer {
@@ -162,7 +240,7 @@ textarea {
 }
 .seg button.on {
   background: var(--accent-soft);
-  color: #aeb8ff;
+  color: var(--accent-text);
 }
 
 .btn {
@@ -187,8 +265,8 @@ textarea {
 }
 .btn.primary {
   background: var(--accent-soft);
-  border-color: rgba(108, 124, 255, 0.35);
-  color: #b6beff;
+  border-color: var(--accent-line);
+  color: var(--accent-text);
 }
 .btn.ghost {
   border-color: transparent;
@@ -275,7 +353,7 @@ textarea {
 }
 
 .row.drop-into {
-  background: rgba(108, 124, 255, 0.22);
+  background: var(--accent-glow);
   box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
@@ -321,7 +399,7 @@ textarea {
 .star {
   width: 17px;
   flex: none;
-  color: #3c4358;
+  color: var(--dim);
   font-size: 13px;
   line-height: 1;
   text-align: center;
@@ -349,7 +427,7 @@ textarea {
   color: var(--later);
 }
 .row.important .row-text {
-  color: #fdf4e3;
+  color: var(--important-text);
 }
 
 .status-mark {
@@ -425,7 +503,7 @@ textarea {
 }
 .inbox-item.selected {
   background: var(--accent-soft);
-  border-color: rgba(108, 124, 255, 0.28);
+  border-color: var(--accent-line);
 }
 .inbox-item.dragging {
   opacity: 0.45;
@@ -433,7 +511,7 @@ textarea {
 
 .inbox-grip {
   flex: none;
-  color: #3a4055;
+  color: var(--faint);
   cursor: grab;
   font-size: 12px;
   line-height: 1.4;
@@ -627,21 +705,21 @@ textarea {
 }
 .chip:hover {
   color: var(--text-dim);
-  border-color: #2f3650;
+  border-color: var(--border-strong);
 }
 .chip.on {
   background: var(--accent-soft);
-  border-color: rgba(108, 124, 255, 0.4);
-  color: #b6beff;
+  border-color: var(--accent-line);
+  color: var(--accent-text);
 }
 .chip.on.important {
   background: var(--important-soft);
-  border-color: rgba(255, 198, 92, 0.4);
+  border-color: var(--important-line);
   color: var(--important);
 }
 .chip.on.done {
-  background: rgba(87, 200, 138, 0.14);
-  border-color: rgba(87, 200, 138, 0.4);
+  background: var(--done-soft);
+  border-color: var(--done-line);
   color: var(--done);
 }
 
@@ -686,7 +764,7 @@ textarea {
 .child-row.done .label {
   color: var(--faint);
   text-decoration: line-through;
-  text-decoration-color: #3a4055;
+  text-decoration-color: var(--faint);
 }
 .child-row.later .label {
   color: var(--later);
@@ -709,15 +787,15 @@ textarea {
   flex: 1;
   min-width: 0;
   background: var(--panel-3);
-  border: 1px solid #2f3650;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   padding: 9px 12px;
   color: var(--text);
 }
 .capture-bar input:focus {
   border-color: var(--accent);
-  background: #232839;
-  box-shadow: 0 0 0 3px rgba(108, 124, 255, 0.16);
+  background: var(--input-bg);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .capture-bar input::placeholder {
   color: var(--muted);
@@ -744,9 +822,9 @@ textarea {
   position: fixed;
   z-index: 85;
   background: var(--panel-2);
-  border: 1px solid #2c3450;
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 16px 40px var(--shadow);
   width: 420px;
   max-width: calc(100vw - 32px);
   padding: 12px 13px;
@@ -794,22 +872,22 @@ textarea {
   transform: translateX(-50%);
   z-index: 90;
   background: var(--panel-3);
-  border: 1px solid #2c3450;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   padding: 7px 16px;
   font-size: 12.5px;
   color: var(--text-dim);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px var(--shadow);
   max-width: min(640px, 80vw);
   overflow-wrap: anywhere;
 }
 .toast.error {
-  border-color: rgba(255, 107, 107, 0.45);
-  color: #ffb3b3;
+  border-color: var(--danger-line);
+  color: var(--danger-text);
 }
 .toast.warn {
-  border-color: rgba(240, 164, 74, 0.45);
-  color: #ffd39a;
+  border-color: var(--warn-line);
+  color: var(--warn-text);
 }
 
 /* ---------- dialog ---------- */
@@ -817,7 +895,7 @@ textarea {
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(6, 8, 13, 0.6);
+  background: var(--scrim);
   z-index: 80;
   display: grid;
   place-items: center;
@@ -831,7 +909,7 @@ textarea {
   max-width: calc(100vw - 40px);
   max-height: 80vh;
   overflow: auto;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 24px 60px var(--shadow-strong);
 }
 
 .dialog-head {
@@ -891,7 +969,7 @@ kbd {
   padding: 4px 9px;
   font-size: 12px;
   color: var(--text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px var(--shadow);
   transform: translate(12px, 12px);
   max-width: 280px;
   overflow: hidden;

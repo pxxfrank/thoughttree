@@ -23,6 +23,7 @@ import type { TreeItem } from '../domain/tree'
 import type { Changes, Edge, Node, Priority, RelationType, Snapshot, Status } from '../domain/types'
 import { detectLocale, type Locale } from '../i18n/strings'
 import type { Persistence } from '../storage/persistence'
+import type { Theme } from '../theme/theme'
 
 export interface Toast {
   id: number
@@ -54,6 +55,7 @@ export interface AppState extends EntityState {
   redoLabelParams?: Record<string, number>
   shortcut: string
   locale: Locale
+  theme: Theme
   dataDir: string
 }
 
@@ -82,6 +84,7 @@ function initialState(): AppState {
     redoLabelKey: null,
     shortcut: DEFAULT_SHORTCUT,
     locale: detectLocale(),
+    theme: 'system',
     dataDir: '',
   }
 }
@@ -220,14 +223,29 @@ export class AppStore {
     try {
       const settings = await this.persistence.readSettings()
       const dataDir = await this.persistence.dataDirectory()
-      const stored = settings['locale']
+      const storedLocale = settings['locale']
+      const storedTheme = settings['theme']
       this.patch({
         shortcut: settings['shortcut'] ?? DEFAULT_SHORTCUT,
-        locale: stored === 'en' || stored === 'zh' ? stored : this.state.locale,
+        locale:
+          storedLocale === 'en' || storedLocale === 'zh' ? storedLocale : this.state.locale,
+        theme:
+          storedTheme === 'dark' || storedTheme === 'light' || storedTheme === 'system'
+            ? storedTheme
+            : this.state.theme,
         dataDir,
       })
     } catch {
       /* settings are a convenience; never block the app on them */
+    }
+  }
+
+  async setTheme(theme: Theme): Promise<void> {
+    this.patch({ theme })
+    try {
+      await this.persistence.writeSetting('theme', theme)
+    } catch (error) {
+      this.toast('toast.shortcutFailed', 'error', { error: String(error) })
     }
   }
 

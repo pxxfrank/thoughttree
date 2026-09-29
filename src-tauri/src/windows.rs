@@ -38,6 +38,22 @@ pub struct CaptureSource {
 /// runs. A packaged front end boots from embedded assets and calls `db_load`
 /// within milliseconds, so the database has to be managed first.
 
+pub fn create_orb_window(app: &App) -> tauri::Result<()> {
+    let window = WebviewWindowBuilder::new(app, "orb", WebviewUrl::App("orb.html".into()))
+        .title("ThoughtTree Orb")
+        .inner_size(ORB_SIZE, ORB_SIZE)
+        .transparent(true)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .visible(false)
+        .build()?;
+    fit_orb(&window);
+    Ok(())
+}
+
 pub fn create_main_window(app: &App) -> tauri::Result<()> {
     WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
         .title("ThoughtTree")
@@ -429,6 +445,22 @@ pub fn orb_peek_window(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn orb_expand_window(app: AppHandle) -> Result<(), String> {
     orb_expand(&app)
+}
+
+/// Match the native window chrome to the app theme. A white UI under a black
+/// title bar looks broken, and on Windows the title bar follows this setting.
+#[tauri::command]
+pub fn set_app_theme(app: AppHandle, theme: String) -> Result<(), String> {
+    let native = match theme.as_str() {
+        "light" => tauri::Theme::Light,
+        _ => tauri::Theme::Dark,
+    };
+    for label in ["main", "capture"] {
+        if let Some(win) = app.get_webview_window(label) {
+            let _ = win.set_theme(Some(native));
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]

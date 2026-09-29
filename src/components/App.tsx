@@ -1,7 +1,9 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { indexChildren } from '../domain/tree'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
+import { setAppTheme } from '../storage/desktop-actions'
+import { applyTheme, resolveTheme } from '../theme/theme'
 import { CaptureBar } from './CaptureBar'
 import { DetailPanel } from './DetailPanel'
 import { DndProvider, type DragPayload, type DropTarget } from './dnd'
@@ -19,6 +21,23 @@ export function App() {
   const { t } = useI18n()
 
   useKeyboard()
+
+  // Keep the document theme in step with the setting, and keep following the
+  // system preference while the setting is "system".
+  useEffect(() => {
+    const resolved = resolveTheme(state.theme)
+    applyTheme(resolved)
+    void setAppTheme(resolved)
+    if (state.theme !== 'system') return
+    const query = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => {
+      const next = resolveTheme('system')
+      applyTheme(next)
+      void setAppTheme(next)
+    }
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [state.theme])
 
   /**
    * Translates a raw pointer target into "which parent, which slot". The index

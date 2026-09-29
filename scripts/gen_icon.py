@@ -17,12 +17,12 @@ W = SIZE * SS
 
 OUT = Path(__file__).resolve().parent / "icon-source.png"
 
-BG_TOP = (38, 43, 66, 255)
-BG_BOTTOM = (22, 25, 38, 255)
-NODE = (236, 239, 250, 255)
-NODE_DIM = (150, 160, 200, 255)
-LINE = (108, 124, 255, 255)
-STAR = (255, 198, 92, 255)
+BG_TOP = (18, 178, 116, 255)
+BG_BOTTOM = (13, 143, 96, 255)
+NODE = (255, 255, 255, 255)
+NODE_DIM = (255, 255, 255, 140)
+LINE = (255, 255, 255, 130)
+STAR = (255, 255, 255, 255)
 
 
 def lerp(a: int, b: int, t: float) -> int:

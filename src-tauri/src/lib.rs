@@ -81,6 +81,11 @@ pub fn run() {
             app.manage(AppDb::open(&db_path));
             app.manage(OrbState::default());
 
+            // All three windows are created here, in order, rather than in the
+            // config: config windows are built before this hook runs, and the
+            // orb (created first) never composited when the others were built
+            // later by Tauri.
+            windows::create_orb_window(app)?;
             windows::create_main_window(app)?;
             windows::create_capture_window(app)?;
 
@@ -125,6 +130,7 @@ pub fn run() {
             windows::orb_snap_window,
             windows::orb_peek_window,
             windows::orb_expand_window,
+            windows::set_app_theme,
             windows::capture_source_context,
             windows::set_shortcut,
         ])

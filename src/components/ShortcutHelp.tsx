@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { LOCALES, useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
+import { THEMES } from '../theme/theme'
 
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta', 'ContextMenu'])
 
@@ -75,6 +76,7 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
   const store = useStore()
   const state = useAppState()
   const { t, locale } = useI18n()
+  const theme = state.theme
 
   const shortcuts: [string, string][] = [
     ['↑ / ↓', t('keys.move')],
@@ -114,6 +116,21 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
                   onClick={() => void store.setLocale(entry.value)}
                 >
                   {entry.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <div className="field-label">{t('help.theme')}</div>
+            <div className="chips">
+              {THEMES.map((entry) => (
+                <button
+                  key={entry.value}
+                  className={`chip ${theme === entry.value ? 'on' : ''}`}
+                  onClick={() => void store.setTheme(entry.value)}
+                >
+                  {t(entry.labelKey)}
                 </button>
               ))}
             </div>

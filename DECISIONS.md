@@ -378,4 +378,61 @@ up in a batch, and that is a keyboard-shaped job.
 
 **Date**: 2026-09-29
 
+---
+
+## D024 — A light theme, and flomo's green as the single accent
+
+**Decision**: Add a light theme (`light` / `dark` / `system`, default system,
+persisted). Move every colour in the app into design tokens so a theme is one
+block of overrides. Replace the indigo accent with flomo's green in *both*
+themes.
+
+**Reason**: The app was dark-only. A light theme is not a second stylesheet —
+it is only maintainable if every colour already resolves to a token, so the
+tokenisation came first (47 literal colours in `styles.css` alone, plus the orb
+and the quick-capture window).
+
+The accent is green in both themes rather than a per-theme hue: a brand that
+changes colour with the theme reads as two products. The green is tuned per
+theme for contrast — `#35d08a` on dark, `#0fa968` on light — which is a
+legitimate reason for the values to differ even though the hue does not.
+
+**Also**: the native window chrome follows the theme (`set_app_theme`), because
+a white UI under a black title bar looks broken. The orb and the quick-capture
+window are separate webviews, so they pick the theme up from `localStorage`,
+which all Tauri windows share, and react to the `storage` event.
+
+**Trade-off**: this replaced a colour the previous build had used throughout.
+The user asked for a flomo-flavoured light theme, and a green accent is most of
+what "flomo" means visually.
+
+**Date**: 2026-09-29
+
+---
+
+## D025 — The orb glyph is smaller; its window is not
+
+**Decision**: Keep the orb window at 64x64 and shrink the glyph inside it from
+58% to 44%. Keep all three windows created in `setup` rather than in the config.
+
+**Reason**: The request was for a smaller *icon*. The window is the hit target,
+and 64px is already the smaller end of comfortable; shrinking it further would
+trade appearance for misclicks. Shrinking the glyph gives the quieter, lighter
+mark without that cost.
+
+Windows are now created uniformly in `setup` (in order: orb, main, capture).
+Mixing config-declared and setup-created windows left the orb unverified.
+
+**Unverified**: the orb's *appearance* could not be confirmed in this
+environment. The window is present, visible, topmost and correctly sized, and
+`IsWindowVisible` is true, but its pixels never appear in a screen capture —
+including when its background was temporarily set to opaque magenta and when a
+plain-HTML colour block was added to the page. That is the signature of a
+layered (transparent) window not being composited into a BitBlt in a remote
+session, i.e. a limitation of the measurement, not necessarily of the app. It
+rendered visibly in an earlier session, so treat this as unconfirmed rather than
+broken. See `PROJECT_STATE.md` → Known Issues.
+
+**Date**: 2026-09-29
+
 

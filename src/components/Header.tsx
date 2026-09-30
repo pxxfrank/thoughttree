@@ -26,6 +26,27 @@ function nextTheme(current: Theme): Theme {
   return THEME_CYCLE[(index + 1) % THEME_CYCLE.length]
 }
 
+/* Real strokes, not text glyphs: `↶` is a thin typographic character whose
+   weight is nothing like the CJK text beside it, so at this size it read as a
+   stray mark rather than a button. */
+function UndoIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h11a5 5 0 0 1 0 10h-4" />
+    </svg>
+  )
+}
+
+function RedoIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m15 14 5-5-5-5" />
+      <path d="M20 9H9a5 5 0 0 0 0 10h4" />
+    </svg>
+  )
+}
+
 function FilterChip({
   active,
   label,
@@ -130,7 +151,7 @@ export function Header() {
           }
           onClick={store.undo}
         >
-          ↶
+          <UndoIcon />
         </button>
         <button
           className="btn icon"
@@ -143,7 +164,7 @@ export function Header() {
           }
           onClick={store.redo}
         >
-          ↷
+          <RedoIcon />
         </button>
         <button className="btn" onClick={store.openSearch} title={t('keys.search')}>
           {t('nav.search')}

@@ -67,17 +67,21 @@ if (skipBuild) {
 }
 
 const bundleDir = join(root, 'src-tauri', 'target', 'release', 'bundle', 'nsis')
-const installer = readdirSync(bundleDir)
-  .filter((name) => /setup\.exe$/i.test(name))
-  .map((name) => join(bundleDir, name))[0]
+const candidates = readdirSync(bundleDir).filter((name) => /setup\.exe$/i.test(name))
 
-if (!installer) fail(`No installer found in ${bundleDir}. Build it first.`)
-if (!installer.includes(version)) {
+// Pick by version rather than by position. Older builds are left behind in this
+// directory, so "the first one" is the *oldest* one — which is how a 0.1.0
+// installer nearly got published under 0.1.1.
+const name = candidates.find((candidate) => candidate.includes(version))
+
+if (!name) {
   fail(
-    `The installer is named "${installer.split('\\').pop()}" but package.json says ${version}.\n` +
-      `Build again so the two agree.`,
+    `No installer for ${version} in ${bundleDir}.\n` +
+      `Found: ${candidates.join(', ') || '(nothing)'}`,
   )
 }
+
+const installer = join(bundleDir, name)
 
 const bytes = readFileSync(installer)
 const digest = createHash('sha256').update(bytes).digest('hex')

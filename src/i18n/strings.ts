@@ -231,6 +231,8 @@ const en: Dict = {
   'error.moveInsideSelf': 'A question cannot be moved inside itself.',
   'error.linkSelf': 'A question cannot be linked to itself.',
   'error.importFormat': 'That file is not a ThoughtTree export.',
+  'error.invalidUrl': 'That link is not a web address.',
+  'error.openUrlFailed': 'Could not open that link.',
   'toast.orbPosition': 'Orb position saved',
 
   'app.opening': 'Opening your local database…',
@@ -469,6 +471,8 @@ const zh: Dict = {
   'error.moveInsideSelf': '一个问题不能移动到它自己内部。',
   'error.linkSelf': '不能把问题关联到它自己。',
   'error.importFormat': '该文件不是 ThoughtTree 导出文件。',
+  'error.invalidUrl': '这不是一个网页地址。',
+  'error.openUrlFailed': '无法打开该链接。',
   'toast.orbPosition': '悬浮球位置已保存',
 
   'app.opening': '正在打开本地数据库…',

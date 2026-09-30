@@ -249,7 +249,18 @@ export function DetailPanel() {
                 <button
                   type="button"
                   title={t('field.source.open')}
-                  onClick={() => void openUrl(node.source_url as string)}
+                  onClick={() => {
+                    // A refused command rejects; unhandled, that is
+                    // indistinguishable from the button not working.
+                    void openUrl(node.source_url as string).catch((error) => {
+                      store.toast(
+                        typeof error === 'string' && error.startsWith('error.')
+                          ? error
+                          : 'error.openUrlFailed',
+                        'error',
+                      )
+                    })
+                  }}
                   style={{
                     padding: 0,
                     border: 'none',

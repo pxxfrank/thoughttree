@@ -75,13 +75,16 @@ pub fn data_dir(app: tauri::AppHandle) -> Result<String, String> {
 ///
 /// The URL comes from the front end, so only `http`/`https` are accepted: this
 /// must never become a way to launch an arbitrary protocol handler or a local
-/// file. The scheme check is the first thing that runs, before any Win32 call.
+/// file. Chromium records a page *without* its scheme, so [`resolve_open_target`]
+/// fills in `https://` for a scheme-less value and refuses everything else. The
+/// check runs before any Win32 call.
+///
+/// [`resolve_open_target`]: crate::browser::resolve_open_target
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
-    if !crate::browser::is_allowed_url(&url) {
-        return Err("error.invalidUrl".to_string());
-    }
-    crate::browser::open_url(&url)
+    let target =
+        crate::browser::resolve_open_target(&url).ok_or_else(|| "error.invalidUrl".to_string())?;
+    crate::browser::open_url(&target)
 }
 
 fn snapshot_json(state: &State<'_, AppDb>, pretty: bool) -> Result<String, String> {

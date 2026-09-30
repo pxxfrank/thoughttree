@@ -22,13 +22,51 @@ pub fn is_browser(app: &str) -> bool {
     )
 }
 
-/// True when `url` carries the `http` or `https` scheme (case-insensitive).
+/// Turns a recorded page into something `ShellExecuteW` can open, or `None`.
 ///
-/// `open_url` is driven by the front end, so this is the guard that keeps it from
-/// becoming a launcher for `file:`, `javascript:`, or any other protocol handler.
-pub fn is_allowed_url(url: &str) -> bool {
-    let lower = url.trim().to_ascii_lowercase();
-    lower.starts_with("http://") || lower.starts_with("https://")
+/// Chromium **hides the scheme** in the omnibox, so a page captured from a
+/// browser usually looks like `example.com/path` with no scheme at all — for a
+/// while this function rejected exactly that, and so rejected every real URL it
+/// was ever handed. `https://` is now assumed for a value that carries no
+/// scheme.
+///
+/// A value that *does* carry one must be `http` or `https`. That is what keeps
+/// `open_url` — which is driven by the front end — from becoming a launcher for
+/// `file:`, `javascript:`, `ms-settings:` or any other protocol handler.
+pub fn resolve_open_target(url: &str) -> Option<String> {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    match scheme_of(&trimmed.to_ascii_lowercase()) {
+        Some("http") | Some("https") => Some(trimmed.to_string()),
+        Some(_) => None,
+        None => Some(format!("https://{trimmed}")),
+    }
+}
+
+/// The scheme of a lowercase URL, or `None` when it has none.
+///
+/// `example.com:8080/x` must not be read as the scheme `example.com`: digits
+/// straight after the colon mean a port, and the value is really scheme-less.
+fn scheme_of(lower: &str) -> Option<&str> {
+    let colon = lower.find(':')?;
+    let (before, after) = lower.split_at(colon);
+    let after = after.get(1..)?;
+
+    if before.is_empty()
+        || !before.starts_with(|c: char| c.is_ascii_alphabetic())
+        || !before
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '-' || c == '.')
+    {
+        return None;
+    }
+    if after.starts_with(|c: char| c.is_ascii_digit()) {
+        return None;
+    }
+    Some(before)
 }
 
 #[cfg(target_os = "windows")]
@@ -161,7 +199,11 @@ pub fn open_url(_url: &str) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_allowed_url, is_browser};
+    use super::{is_browser, resolve_open_target};
+
+    fn target(url: &str) -> Option<String> {
+        resolve_open_target(url)
+    }
 
     #[test]
     fn is_browser_recognizes_real_browsers_case_insensitively() {
@@ -186,15 +228,58 @@ mod tests {
     }
 
     #[test]
-    fn only_http_and_https_schemes_are_allowed() {
-        assert!(is_allowed_url("http://example.com"));
-        assert!(is_allowed_url("https://jieni.ai/docs/reading/how-to-be-good-at-research"));
-        assert!(is_allowed_url("HTTPS://Example.com"));
-        assert!(is_allowed_url("  https://example.com  "));
-        assert!(!is_allowed_url("file:///C:/Windows/System32/cmd.exe"));
-        assert!(!is_allowed_url("javascript:alert(1)"));
-        assert!(!is_allowed_url("ftp://example.com"));
-        assert!(!is_allowed_url(r"C:\Windows\notepad.exe"));
-        assert!(!is_allowed_url(""));
+    fn a_scheme_less_value_gets_https() {
+        // What Chromium's omnibox actually hands us.
+        assert_eq!(
+            target("jieni.ai/docs/reading/how-to-be-good-at-research").as_deref(),
+            Some("https://jieni.ai/docs/reading/how-to-be-good-at-research"),
+        );
+        assert_eq!(
+            target("datawhalechina.github.io/diy-llm/").as_deref(),
+            Some("https://datawhalechina.github.io/diy-llm/"),
+        );
+        assert_eq!(target("example.com").as_deref(), Some("https://example.com"));
+    }
+
+    #[test]
+    fn an_explicit_web_scheme_is_kept() {
+        assert_eq!(target("http://example.com").as_deref(), Some("http://example.com"));
+        assert_eq!(target("HTTPS://Example.com").as_deref(), Some("HTTPS://Example.com"));
+        assert_eq!(
+            target("  https://example.com  ").as_deref(),
+            Some("https://example.com"),
+        );
+    }
+
+    #[test]
+    fn a_port_is_not_mistaken_for_a_scheme() {
+        assert_eq!(target("example.com:8080/x").as_deref(), Some("https://example.com:8080/x"));
+        assert_eq!(target("localhost:3000").as_deref(), Some("https://localhost:3000"));
+        assert_eq!(target("127.0.0.1:5173/x").as_deref(), Some("https://127.0.0.1:5173/x"));
+    }
+
+    /// Not part of the normal run: it opens a real browser window. Kept because
+    /// "the guard accepts the URL" is a weaker claim than "the page opens".
+    #[test]
+    #[ignore = "launches the default browser; run with: cargo test -- --ignored"]
+    #[cfg(target_os = "windows")]
+    fn shell_execute_actually_opens_the_page() {
+        let target = resolve_open_target("datawhalechina.github.io/diy-llm/").unwrap();
+        assert_eq!(target, "https://datawhalechina.github.io/diy-llm/");
+        super::open_url(&target).expect("ShellExecuteW should open the page");
+    }
+
+    #[test]
+    fn other_protocol_handlers_are_refused() {
+        assert_eq!(target("file:///C:/Windows/System32/cmd.exe"), None);
+        assert_eq!(target("javascript:alert(1)"), None);
+        assert_eq!(target("data:text/html,<script>x</script>"), None);
+        assert_eq!(target("ms-settings:"), None);
+        assert_eq!(target("vbscript:msgbox(1)"), None);
+        assert_eq!(target("ftp://example.com"), None);
+        assert_eq!(target(r"C:\Windows\notepad.exe"), None);
+        assert_eq!(target("chrome://settings"), None);
+        assert_eq!(target(""), None);
+        assert_eq!(target("   "), None);
     }
 }

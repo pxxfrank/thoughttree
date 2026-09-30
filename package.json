@@ -6,13 +6,16 @@
   "description": "Local-first Thinking Tracker — Capture freely. Organize deliberately. Focus relentlessly.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/version.mjs check && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
     "test:rust": "node scripts/run-rust.cjs test",
+    "version": "node scripts/version.mjs",
+    "version:set": "node scripts/version.mjs set",
+    "version:check": "node scripts/version.mjs check",
     "tauri": "tauri",
     "app:dev": "node scripts/run-rust.cjs dev",
     "app:build": "node scripts/run-rust.cjs build"

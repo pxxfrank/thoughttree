@@ -244,6 +244,29 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
 
 ---
 
+## Releasing
+
+The version is declared in four files, but `package.json` is the only one you
+edit — the rest are written from it, and `tauri.conf.json` reads it directly.
+
+```
+pnpm version:set 0.2.0                        # write the version everywhere
+git commit -am "release: v0.2.0" && git push
+pnpm app:release                              # build + publish to Releases
+```
+
+`pnpm app:release` builds the NSIS installer, tags `v<version>`, and attaches
+the installer and its SHA-256 to a GitHub release. It refuses to run from a
+dirty tree, refuses to publish a version that is already released, and checks
+the installer it uploads is named for the version it is tagging — so the file on
+the Releases page is always the one this tree builds.
+
+`pnpm build` runs `pnpm version:check` first, and that is also Tauri's
+`beforeBuildCommand`, so a drifting version fails the packaged build instead of
+shipping.
+
+---
+
 ## Product Decisions
 
 See `DECISIONS.md` for the full log with reasoning. The load-bearing ones:

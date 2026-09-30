@@ -87,6 +87,7 @@ const en: Dict = {
   'review.title': 'A little to revisit',
   'review.sub':
     'No goals here, no streaks. Just some of what you wrote, brought back once.',
+  'review.challenged': 'Challenged, with no answer yet',
   'review.older': 'Older captures',
   'review.notes': 'Notes without a conclusion',
   'review.unexplained': 'Relations still unexplained',
@@ -334,6 +335,7 @@ const zh: Dict = {
 
   'review.title': '回头看看',
   'review.sub': '这里没有目标，也没有连续打卡。只是把写过的东西再拿给你看一眼。',
+  'review.challenged': '被质疑，但还没结论',
   'review.older': '较早的记录',
   'review.notes': '有笔记，但还没结论',
   'review.unexplained': '还没说明关系的问题',

@@ -62,7 +62,7 @@ function LinkRow({ link, peerId }: { link: Edge; peerId: string }) {
   if (!peer) return null
   return (
     <div className="link-row">
-      <button className="link-peer" title={peer.text} onClick={() => store.select(peerId)}>
+      <button className="link-peer" title={peer.text} onClick={() => store.revealNode(peerId)}>
         {peer.text}
       </button>
       {link.reason && <div className="link-reason">{link.reason}</div>}

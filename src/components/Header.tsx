@@ -38,12 +38,12 @@ type GlyphProps = { children: React.ReactNode }
 function Icon({ children }: GlyphProps) {
   return (
     <svg
-      width="15"
-      height="15"
+      width="17"
+      height="17"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.4"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

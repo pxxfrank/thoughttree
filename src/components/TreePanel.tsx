@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { TreeItem } from '../domain/tree'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
-import { useLinkedIds, useUnexplained, useVisibleForest } from '../state/selectors'
+import { useLinkedIds, useRelatedIds, useUnexplained, useVisibleForest } from '../state/selectors'
 import { isComposing } from '../util/keyboard'
 import { useDnd } from './dnd'
 
@@ -123,6 +123,7 @@ function TreeRow({ item }: { item: TreeItem }) {
   const { t } = useI18n()
   const unexplained = useUnexplained()
   const linked = useLinkedIds()
+  const related = useRelatedIds()
   const { target, begin, isDragging } = useDnd()
   const ref = useRef<HTMLDivElement>(null)
   const node = item.node
@@ -137,6 +138,7 @@ function TreeRow({ item }: { item: TreeItem }) {
   const classes = [
     'row',
     selected ? 'selected' : '',
+    related.has(node.id) ? 'related' : '',
     node.priority === 'important' ? 'important' : '',
     node.status === 'done' ? 'done' : '',
     node.status === 'later' ? 'later' : '',

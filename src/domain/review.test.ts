@@ -20,6 +20,18 @@ function edge(from: string, to: string, reason: string | null): Edge {
   }
 }
 
+function link(from: string, to: string, relation_type: Edge['relation_type']): Edge {
+  return {
+    id: `l-${from}-${to}-${relation_type}`,
+    from_node: from,
+    to_node: to,
+    relation_type,
+    reason: null,
+    created_at: 1,
+    kind: 'link',
+  }
+}
+
 describe('reviewGroups', () => {
   it('older: open questions outside the Inbox', () => {
     const nodes = [
@@ -111,5 +123,46 @@ describe('reviewGroups', () => {
     expect(after.filter((id) => before.includes(id))).toEqual(
       before.filter((id) => after.includes(id)),
     )
+  })
+
+  it('challenged: the target of an incoming challenge with no conclusion', () => {
+    const nodes = [n('a'), n('b')]
+    const edges = [link('a', 'b', 'challenge')]
+    const picked = group(reviewGroups(nodes, edges, 1), 'challenged')
+    expect(ids(picked?.nodes ?? [])).toEqual(['b'])
+  })
+
+  it('challenged: dropped once the challenged node has a conclusion', () => {
+    const nodes = [n('a'), n('b', { conclusion: 'answered it' })]
+    const edges = [link('a', 'b', 'challenge')]
+    expect(group(reviewGroups(nodes, edges, 1), 'challenged')).toBeUndefined()
+  })
+
+  it('challenged: excludes the node that only issues the challenge', () => {
+    const nodes = [n('a'), n('b')]
+    const edges = [link('a', 'b', 'challenge')]
+    const keys = ids(group(reviewGroups(nodes, edges, 1), 'challenged')?.nodes ?? [])
+    expect(keys).not.toContain('a')
+  })
+
+  it('challenged: ignores support and depends_on links', () => {
+    const nodes = [n('a'), n('b'), n('c')]
+    const edges = [link('a', 'b', 'support'), link('a', 'c', 'depends_on')]
+    expect(group(reviewGroups(nodes, edges, 1), 'challenged')).toBeUndefined()
+  })
+
+  it('challenged: is capped and dropped when empty', () => {
+    const nodes = Array.from({ length: 7 }, (_, i) => n(`n${i}`))
+    const edges = nodes.map((node, i) => link(`challenger${i}`, node.id, 'challenge'))
+    expect(group(reviewGroups(nodes, edges, 3), 'challenged')?.nodes).toHaveLength(4)
+    expect(group(reviewGroups(nodes, edges, 3, 2), 'challenged')?.nodes).toHaveLength(2)
+    expect(group(reviewGroups([n('a')], [], 3), 'challenged')).toBeUndefined()
+  })
+
+  it('challenged: comes first, ahead of the other groups', () => {
+    const nodes = [n('a', { inbox: true }), n('b', { note: 'wip' })]
+    const edges = [link('x', 'a', 'challenge')]
+    const keys = reviewGroups(nodes, edges, 1).map((entry) => entry.key)
+    expect(keys[0]).toBe('challenged')
   })
 })

@@ -1,6 +1,12 @@
 import { useMemo } from 'react'
 import { makeVisibility, filterTree, inboxOrder, focusList } from '../domain/focus'
-import { unexplainedNodeIds, edgeForNode, linksForNode, linkedNodeIds } from '../domain/relations'
+import {
+  unexplainedNodeIds,
+  edgeForNode,
+  linksForNode,
+  linkedNodeIds,
+  relatedNodeIds,
+} from '../domain/relations'
 import { reviewGroups, type ReviewGroup } from '../domain/review'
 import { buildForest, flatten, pathText } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
@@ -110,6 +116,18 @@ export function useLinksFor(nodeId: string | null): { outgoing: Edge[]; incoming
 export function useLinkedIds(): Set<string> {
   const { edges } = useAppState()
   return useMemo(() => linkedNodeIds(Object.values(edges)), [edges])
+}
+
+/**
+ * The peers on the other end of the selected node's links. Stable per input so
+ * it can feed a class list; empty when nothing is selected.
+ */
+export function useRelatedIds(): Set<string> {
+  const { edges, selectedId } = useAppState()
+  return useMemo(
+    () => (selectedId ? relatedNodeIds(Object.values(edges), selectedId) : new Set<string>()),
+    [edges, selectedId],
+  )
 }
 
 export function usePath(nodeId: string | null): string {

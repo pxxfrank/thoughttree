@@ -675,4 +675,36 @@ cluster was.
 
 **Date**: 2026-09-30
 
+---
+
+## D034 — A relation is revealed at its endpoints, never drawn
+
+Cross-branch links can be presented as a diagram, as a browsable table, or at
+the nodes themselves. The app does the last one, plus one deliberate exception.
+
+The reasoning is about what a relation *is*. A tag answers "which category is
+this"; a link answers "what is true between these two particular thoughts". The
+second is far more expensive to produce, which is why links are naturally rare.
+And a rare judgement has exactly one use: **being re-encountered by someone who
+had forgotten making it.** Nobody browses their own past judgements for fun.
+
+So:
+
+- **Selecting a node reveals its links in place** — its peers get a dashed
+  marker in the tree while the selected node keeps its solid one. This is
+  contextual, so it can never become the hairball that drawing every edge at
+  once would.
+- **Unanswered challenges are pushed** in Review, first. A `challenge` link
+  means something contradicts this question and no conclusion has been written —
+  an open thread, which is precisely what the product exists to not lose.
+
+**Trade-off**: no graph view, and no edges drawn in the tree. A diagram competes
+with the tree for visual primacy, and the tree is the product's spine — the
+"research mainline" the whole thing is named after. It also degrades badly: at a
+few hundred nodes a node-link layout is a thicket. This was the brief's position
+too, which lists a knowledge graph as out of scope; the decision here is to keep
+it that way for a reason rather than by omission.
+
+**Date**: 2026-09-30
+
 

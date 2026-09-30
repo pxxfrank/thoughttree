@@ -67,6 +67,20 @@ export function linkedNodeIds(edges: Edge[]): Set<string> {
   return ids
 }
 
+/** Node ids on the other end of any link touching `nodeId`, either direction. */
+export function relatedNodeIds(edges: Edge[], nodeId: string): Set<string> {
+  const ids = new Set<string>()
+  for (const edge of edges) {
+    if (edgeKind(edge) !== 'link') continue
+    if (edge.from_node === nodeId) {
+      if (edge.to_node !== nodeId) ids.add(edge.to_node)
+    } else if (edge.to_node === nodeId) {
+      if (edge.from_node !== nodeId) ids.add(edge.from_node)
+    }
+  }
+  return ids
+}
+
 /**
  * Nodes that sit under a parent without a stated reason. These are the ones the
  * "unexplained relations" filter collects for a later pass — the product

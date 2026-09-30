@@ -1,8 +1,8 @@
 import { inboxOrder } from './focus'
-import { unexplainedNodeIds } from './relations'
+import { edgeKind, unexplainedNodeIds } from './relations'
 import type { Edge, Node } from './types'
 
-export type ReviewGroupKey = 'older' | 'notes' | 'unexplained' | 'inbox'
+export type ReviewGroupKey = 'challenged' | 'older' | 'notes' | 'unexplained' | 'inbox'
 
 export interface ReviewGroup {
   key: ReviewGroupKey
@@ -49,16 +49,29 @@ export function reviewGroups(
 ): ReviewGroup[] {
   const unexplained = unexplainedNodeIds(nodes, edges)
 
+  // A challenge is an open thread: something contradicts this question and it
+  // has not been answered. Only the challenged side (the link's `to_node`) ever
+  // belongs here, and only while it still has no conclusion.
+  const challengedIds = new Set<string>()
+  for (const edge of edges) {
+    if (edgeKind(edge) !== 'link' || edge.relation_type !== 'challenge') continue
+    challengedIds.add(edge.to_node)
+  }
+
   const older = nodes
     .filter((node) => !node.inbox && node.status === 'open')
     .sort((a, b) => a.created_at - b.created_at)
   const notes = nodes.filter(
     (node) => (node.note ?? '').trim() !== '' && (node.conclusion ?? '').trim() === '',
   )
+  const challenged = nodes.filter(
+    (node) => challengedIds.has(node.id) && (node.conclusion ?? '').trim() === '',
+  )
   const unexplainedNodes = nodes.filter((node) => unexplained.has(node.id))
   const inbox = inboxOrder(nodes)
 
   const groups: ReviewGroup[] = [
+    { key: 'challenged', nodes: pick(challenged, seed, perGroup) },
     { key: 'older', nodes: pick(older, seed, perGroup) },
     { key: 'notes', nodes: pick(notes, seed, perGroup) },
     { key: 'unexplained', nodes: pick(unexplainedNodes, seed, perGroup) },

@@ -4,7 +4,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { LOCALES, useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { DEFAULT_SHORTCUT } from '../state/store'
-import { listBackups, restoreBackup, type BackupInfo } from '../storage/desktop-actions'
+import { listBackups, quitApp, restoreBackup, type BackupInfo } from '../storage/desktop-actions'
 import { THEMES } from '../theme/theme'
 
 const MODIFIER_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta', 'ContextMenu'])
@@ -291,6 +291,16 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
           </div>
 
           <Backups />
+
+          {/* Quit belongs here rather than in the toolbar: it is rare, and it
+              is the one action you cannot take back. */}
+          <div className="field">
+            <div className="settings-row">
+              <button className="btn" onClick={() => void quitApp()}>
+                {t('action.quit')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

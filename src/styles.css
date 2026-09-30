@@ -297,6 +297,24 @@ textarea {
 .btn.icon:disabled {
   opacity: 0.55;
 }
+/* A toggled-on icon button (the filters, when they are not at their default). */
+.btn.icon.on {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent-text);
+}
+/* Separates "view settings" from "actions" without a second toolbar. */
+.header-divider {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--border);
+}
+.filter-menu {
+  width: 272px;
+  max-width: calc(100vw - 32px);
+}
 /* The only two *actions* that carry a colour. Green means "this commits",
    amber means "★ important", red means "this cannot be undone" — everything
    else stays neutral so those three keep meaning something. */

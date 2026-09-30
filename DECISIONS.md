@@ -650,4 +650,29 @@ or ghost.
 
 **Date**: 2026-09-30
 
+---
+
+## D033 — The header holds navigation and actions; settings move out of it
+
+The header had eleven controls in three visually separate clusters: brand, three
+view tabs, four filter chips, a theme button, undo, redo, search, keys and quit.
+No grouping meant anything — and two of the chips (Later, Done) were lit up on
+first launch, because those are *visible by default*. A default was reading as a
+choice the user had made.
+
+- The four filters are now one button with a menu, marked only when the state
+  actually differs from the default.
+- `? Keys` and `Quit` fold into a single settings button. Quit is rare and
+  irreversible, and it had no business carrying the same weight as Search.
+- Search became a magnifier, and the theme cycle became three stroke icons
+  instead of the glyphs `◐ ☀ ☾`, which were the last non-strokes in the row.
+
+**Trade-off**: the theme switch stays in the header even though the settings
+dialog already offers it, because D024 exists — it was buried in that dialog
+once and being buried was the complaint. With the filters gone the row fits at a
+900px window, so nothing can be pushed out of reach the way the old right-hand
+cluster was.
+
+**Date**: 2026-09-30
+
 

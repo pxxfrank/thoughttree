@@ -7,3 +7,7 @@ src-tauri/gen/
 .DS_Store
 .vite/
 coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/

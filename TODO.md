@@ -10,12 +10,6 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 
 ## P1 — Required for a good MVP
 
-- [ ] **A real-browser E2E harness.** Drive the actual UI with Playwright against
-  the Vite dev server, with the Tauri API stubbed by `MemoryPersistence`
-  (gated behind `import.meta.env.DEV`). This is the only reliable way to
-  regression-test drag-and-drop, the relation prompt and the capture bar —
-  all three of which shipped broken despite a green unit-test suite, and it is
-  the only item in this list that would have caught the bugs found by hand.
 - [ ] **Persist undo history** — undo currently lives in memory and is per
   window, so it is lost on restart and does not cover a capture made from the
   orb. Decide whether that is acceptable or move history into SQLite.
@@ -38,6 +32,24 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 - [ ] Keyboard: multi-select with Shift+Arrow, range delete.
 - [ ] A cross-branch link currently shows as a `⇄` badge and in the detail
   panel; consider a hover preview that names the linked questions.
+
+## Done — the E2E harness
+
+- [x] **A real-browser Playwright harness** (`pnpm test:e2e`). `pnpm dev` now
+  opens the app in an ordinary browser, where it runs on `MemoryPersistence`
+  instead of the Tauri shell; the suite drives that real UI. Seven specs pin
+  the behaviours that shipped broken and were invisible to the unit tests:
+  capture → Inbox and not the tree, the capture bar being on screen, filing
+  raising a *clickable* "Why here?", an empty tree accepting a drop, the Focus
+  panel's undo/redo actually doing something, `Ctrl+P` revealing a node inside
+  a collapsed ancestor, and the header theme switch reaching the document.
+  A shared guard fails any test on an uncaught exception, an unhandled
+  rejection or a non-allow-listed `console.error` — which is the whole point,
+  since "the click silently threw and nothing happened" was the most common
+  bug shape here.
+- [x] Fixed: in a plain browser every load threw
+  `Cannot read properties of undefined (reading 'invoke')` — the shell calls
+  were unguarded. The harness caught this on its first run.
 
 ## Done — Phase 8 (the six gaps around the core loop)
 

@@ -163,6 +163,10 @@ window never disagree.
   Capture → Inbox, Inbox → Tree, Tree drag → Relation, Relation → Why Here,
   Important → Focus, Done → hide/show, plus write-failure rollback,
   cross-window sync, inbox/tree separation and language switching).
+- 7 Playwright E2E tests over the real UI in a real browser (`pnpm test:e2e`).
+  These exist because the unit tests exercise the store while the bugs lived in
+  the seam between the store, the DOM and the display — six of them shipped
+  green. The suite caught a seventh on its first run.
 - 17 Rust tests over the storage layer (create, upsert, cascade delete, one
   parent edge per child, settings, the v1→v2 edge migration, backup rotation,
   restore, import).
@@ -231,17 +235,12 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
 
 ## Next
 
-1. **A real-browser E2E harness** (Playwright against the dev server, with the
-   Tauri API stubbed by `MemoryPersistence`). Every bug in the table above was
-   invisible to the unit suite, because the unit suite exercises the store and
-   the bugs lived in the seam between the store, the DOM, the OS shell and the
-   display. This is the highest-leverage remaining item.
-2. Decide the fate of undo history: persist it, or accept and document the
+1. Decide the fate of undo history: persist it, or accept and document the
    limitation.
-3. Multi-select drag in the tree.
-4. Auto-scroll during drag.
-5. Tree virtualisation.
-6. Markdown export — getting a conclusion *out* into writing.
+2. Multi-select drag in the tree.
+3. Auto-scroll during drag.
+4. Tree virtualisation.
+5. Markdown export — getting a conclusion *out* into writing.
 
 ---
 

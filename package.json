@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:all": "vitest run && playwright test",
     "test:rust": "node scripts/run-rust.cjs test",
     "tauri": "tauri",
     "app:dev": "node scripts/run-rust.cjs dev",
@@ -22,6 +24,7 @@
     "react-dom": "^19"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tauri-apps/cli": "^2",
     "@types/node": "^26.6.3",
     "@types/react": "^19",

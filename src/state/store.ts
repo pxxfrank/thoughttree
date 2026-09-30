@@ -78,6 +78,7 @@ export interface AppState extends EntityState {
   shortcut: string
   locale: Locale
   theme: Theme
+  captureUrl: boolean
   dataDir: string
 }
 
@@ -127,6 +128,7 @@ function initialState(): AppState {
     shortcut: DEFAULT_SHORTCUT,
     locale: detectLocale(),
     theme: 'system',
+    captureUrl: true,
     dataDir: '',
   }
 }
@@ -296,6 +298,9 @@ export class AppStore {
           storedTheme === 'dark' || storedTheme === 'light' || storedTheme === 'system'
             ? storedTheme
             : this.state.theme,
+        // The Rust sampler treats anything other than 'off' as on, so a missing
+        // or unrecognised value means recording is enabled.
+        captureUrl: settings['capture_url'] !== 'off',
         dataDir,
       })
     } catch {
@@ -321,9 +326,21 @@ export class AppStore {
     }
   }
 
+  async setCaptureUrl(enabled: boolean): Promise<void> {
+    this.patch({ captureUrl: enabled })
+    try {
+      await this.persistence.writeSetting('capture_url', enabled ? 'on' : 'off')
+    } catch (error) {
+      this.toast('toast.shortcutFailed', 'error', { error: String(error) })
+    }
+  }
+
   // --- capture ------------------------------------------------------------
 
-  capture(text: string, source: { app?: string | null; title?: string | null } = {}): string | null {
+  capture(
+    text: string,
+    source: { app?: string | null; title?: string | null; url?: string | null } = {},
+  ): string | null {
     const mutation = captureMutation(text, Date.now(), source)
     if (!mutation) return null
     this.commit(mutation)

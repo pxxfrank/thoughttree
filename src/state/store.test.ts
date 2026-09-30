@@ -68,10 +68,12 @@ describe('capture → inbox', () => {
     const id = store.capture('Note jotted in an editor', {
       app: 'notepad',
       title: 'Untitled - Notepad',
+      url: 'https://example.com/article',
     }) as string
     const node = store.getState().nodes[id]
     expect(node.source_app).toBe('notepad')
     expect(node.source_title).toBe('Untitled - Notepad')
+    expect(node.source_url).toBe('https://example.com/article')
     await vi.waitFor(() => expect(persistence.applied).toHaveLength(1))
   })
 })
@@ -272,6 +274,42 @@ describe('undo / redo', () => {
   })
 })
 
+describe('capture url setting', () => {
+  it('is on by default', async () => {
+    const { store } = await ready()
+    expect(store.getState().captureUrl).toBe(true)
+  })
+
+  it('patches state and persists capture_url as on/off', async () => {
+    const { store, persistence } = await ready()
+    await store.setCaptureUrl(false)
+    expect(store.getState().captureUrl).toBe(false)
+    expect(persistence.settings['capture_url']).toBe('off')
+    await store.setCaptureUrl(true)
+    expect(store.getState().captureUrl).toBe(true)
+    expect(persistence.settings['capture_url']).toBe('on')
+  })
+
+  it('loads a stored off value back as disabled', async () => {
+    const persistence = new MemoryPersistence()
+    await persistence.writeSetting('capture_url', 'off')
+    const store = new AppStore(persistence)
+    await store.init()
+    // Settings load is fire-and-forget; wait for the patch it applies.
+    await vi.waitFor(() => expect(store.getState().dataDir).toBe('/tmp/thoughttree'))
+    expect(store.getState().captureUrl).toBe(false)
+  })
+
+  it('treats a missing or unrecognised value as on', async () => {
+    const persistence = new MemoryPersistence()
+    await persistence.writeSetting('capture_url', 'whatever')
+    const store = new AppStore(persistence)
+    await store.init()
+    await vi.waitFor(() => expect(store.getState().dataDir).toBe('/tmp/thoughttree'))
+    expect(store.getState().captureUrl).toBe(true)
+  })
+})
+
 describe('inbox is separate from the tree', () => {
   it('captured thoughts do not appear in the tree until they are filed', async () => {
     const { store } = await ready()
@@ -325,6 +363,7 @@ describe('reliability', () => {
           collapsed: false,
           source_app: null,
           source_title: null,
+          source_url: null,
         },
       ],
       upsert_edges: [],
@@ -457,6 +496,7 @@ describe('import and restore', () => {
     collapsed: false,
     source_app: null,
     source_title: null,
+    source_url: null,
   }
 
   it('importSnapshot is a single undoable mutation', async () => {

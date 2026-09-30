@@ -50,6 +50,7 @@ export function newNode(text: string, now: number, overrides: Partial<Node> = {}
     collapsed: false,
     source_app: null,
     source_title: null,
+    source_url: null,
     ...overrides,
   }
 }
@@ -58,7 +59,7 @@ export function newNode(text: string, now: number, overrides: Partial<Node> = {}
 export function captureMutation(
   text: string,
   now = nowMs(),
-  source: { app?: string | null; title?: string | null } = {},
+  source: { app?: string | null; title?: string | null; url?: string | null } = {},
 ): Mutation | null {
   const trimmed = text.trim()
   if (!trimmed) return null
@@ -67,6 +68,7 @@ export function captureMutation(
     position: now,
     source_app: source.app ?? null,
     source_title: source.title ?? null,
+    source_url: source.url ?? null,
   })
   return {
     labelKey: 'mutation.capture',

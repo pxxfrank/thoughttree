@@ -104,6 +104,7 @@ const en: Dict = {
   'field.conclusion': 'Conclusion',
   'field.source': 'Captured from',
   'field.source.unknown': 'Unknown app',
+  'field.source.open': 'Open page',
   'field.openQuestions': 'Open questions ({n})',
 
   'priority.normal': 'Normal',
@@ -174,6 +175,9 @@ const en: Dict = {
   'theme.system': 'System',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
+  'settings.captureUrl': 'Record the page you were reading',
+  'settings.captureUrlHint':
+    "Reads the browser's address bar locally. Nothing is sent anywhere.",
   'help.shortcut': 'Global quick capture shortcut',
   'help.shortcut.hint': 'Works from any application. Leave empty to disable.',
   'help.shortcut.placeholder': 'Click and press a key combination',
@@ -341,6 +345,7 @@ const zh: Dict = {
   'field.conclusion': '结论',
   'field.source': '来源',
   'field.source.unknown': '未知应用',
+  'field.source.open': '打开页面',
   'field.openQuestions': '未解决的子问题（{n}）',
 
   'priority.normal': '普通',
@@ -411,6 +416,8 @@ const zh: Dict = {
   'theme.system': '跟随系统',
   'theme.light': '浅色',
   'theme.dark': '深色',
+  'settings.captureUrl': '记录你当时正在看的页面',
+  'settings.captureUrlHint': '在本地读取浏览器地址栏，不会发送到任何地方。',
   'help.shortcut': '全局快速记录快捷键',
   'help.shortcut.hint': '在任何应用里都能触发；留空表示禁用。',
   'help.shortcut.placeholder': '点击后按下组合键',

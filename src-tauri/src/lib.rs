@@ -1,3 +1,4 @@
+mod browser;
 mod commands;
 mod context;
 mod db;
@@ -160,6 +161,7 @@ pub fn run() {
             commands::settings_all,
             commands::settings_set,
             commands::data_dir,
+            commands::open_url,
             commands::export_data,
             commands::create_backup,
             commands::read_import,

@@ -19,6 +19,12 @@ pub struct ContextSlot(pub Mutex<CaptureSource>);
 /// enough to stay invisible in a process listing.
 const SAMPLE_MS: u64 = 400;
 
+/// Minimum spacing between UI Automation reads. Probing a browser's
+/// accessibility tree is far heavier than the cheap Win32 foreground query, so
+/// the sampler only pays for it occasionally and reuses the last value in
+/// between.
+const URL_READ_MS: u64 = 1000;
+
 /// Clone out of the slot. A poisoned lock yields an empty context rather than
 /// propagating the panic.
 pub fn current(slot: &ContextSlot) -> CaptureSource {
@@ -27,6 +33,7 @@ pub fn current(slot: &ContextSlot) -> CaptureSource {
         Err(_) => CaptureSource {
             app: None,
             title: None,
+            url: None,
         },
     }
 }
@@ -35,9 +42,17 @@ pub fn current(slot: &ContextSlot) -> CaptureSource {
 #[cfg(target_os = "windows")]
 pub fn start(app: &AppHandle) {
     let app = app.clone();
-    std::thread::spawn(move || loop {
-        std::thread::sleep(std::time::Duration::from_millis(SAMPLE_MS));
-        sample_once(&app);
+    std::thread::spawn(move || {
+        // Built once on this thread, before the loop: UI Automation is
+        // apartment-bound and rebuilding it every tick would be wasteful. A
+        // `None` here just means no URLs are captured — the sampler keeps
+        // running either way and never aborts.
+        let reader = crate::browser::AddressBarReader::new();
+        let mut last_read: Option<std::time::Instant> = None;
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(SAMPLE_MS));
+            sample_once(&app, reader.as_ref(), &mut last_read);
+        }
     });
 }
 
@@ -60,10 +75,16 @@ fn is_ours(app: &AppHandle, hwnd: *mut std::ffi::c_void) -> bool {
 }
 
 /// One tick: read the foreground window and, when it is not ours, remember the
-/// process it belongs to. Handles are dropped immediately and nothing unwraps.
+/// process it belongs to — plus, for a real browser, the address bar. Handles
+/// are dropped immediately and nothing unwraps.
 #[cfg(target_os = "windows")]
-fn sample_once(app: &AppHandle) {
+fn sample_once(
+    app: &AppHandle,
+    reader: Option<&crate::browser::AddressBarReader>,
+    last_read: &mut Option<std::time::Instant>,
+) {
     use std::ffi::c_void;
+    use windows::Win32::Foundation::HWND;
 
     const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
     const MAX_TITLE: usize = 512;
@@ -125,14 +146,60 @@ fn sample_once(app: &AppHandle) {
             }
         }
 
+        // Start from the value already stored and only ever replace it with a
+        // good one: a failed, empty, or too-frequent read must not wipe the
+        // last URL the same way our own window must not wipe app/title.
+        let mut url = stored_url(app);
+        if !capture_url_enabled(app) {
+            url = None;
+        } else if app_name.as_deref().map(crate::browser::is_browser).unwrap_or(false) {
+            let now = std::time::Instant::now();
+            let due = match *last_read {
+                Some(previous) => {
+                    now.duration_since(previous).as_millis() as u64 >= URL_READ_MS
+                }
+                None => true,
+            };
+            if due {
+                *last_read = Some(now);
+                if let Some(reader) = reader {
+                    if let Some(found) = reader.read(HWND(hwnd)) {
+                        url = Some(found);
+                    }
+                }
+            }
+        }
+
         if let Some(slot) = app.try_state::<ContextSlot>() {
             if let Ok(mut guard) = slot.0.lock() {
                 *guard = CaptureSource {
                     app: app_name,
                     title,
+                    url,
                 };
             }
         }
+    }
+}
+
+/// The URL currently stored in the slot, if any. A poisoned lock reads as none.
+#[cfg(target_os = "windows")]
+fn stored_url(app: &AppHandle) -> Option<String> {
+    let slot = app.try_state::<ContextSlot>()?;
+    let guard = slot.0.lock().ok()?;
+    guard.url.clone()
+}
+
+/// Whether URL capture is enabled. Anything other than an explicit `"off"` —
+/// including a missing setting or an unreadable database — counts as on.
+#[cfg(target_os = "windows")]
+fn capture_url_enabled(app: &AppHandle) -> bool {
+    let Some(db) = app.try_state::<crate::AppDb>() else {
+        return true;
+    };
+    match db.with(|conn| Ok(crate::db::get_setting(conn, "capture_url").ok().flatten())) {
+        Ok(Some(value)) => value != "off",
+        _ => true,
     }
 }
 

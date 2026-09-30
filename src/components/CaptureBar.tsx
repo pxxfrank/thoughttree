@@ -14,7 +14,7 @@ export function CaptureBar() {
   const submit = async () => {
     if (!text.trim()) return
     // Never let a context lookup failure block the save.
-    const source = await captureSourceContext().catch(() => ({ app: null, title: null }))
+    const source = await captureSourceContext().catch(() => ({ app: null, title: null, url: null }))
     store.capture(text, source)
     setText('')
   }

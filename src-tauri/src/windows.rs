@@ -38,6 +38,9 @@ pub struct OrbState(pub Mutex<OrbRuntime>);
 pub struct CaptureSource {
     pub app: Option<String>,
     pub title: Option<String>,
+    /// The browser address bar at sample time, when it could be read. `None`
+    /// serialises as `null`, which is what the front end expects.
+    pub url: Option<String>,
 }
 
 /// --- Windows created at startup -------------------------------------------

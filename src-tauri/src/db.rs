@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const SCHEMA_VERSION: i32 = 2;
+const SCHEMA_VERSION: i32 = 3;
 
 const SCHEMA_V1: &str = r#"
 CREATE TABLE IF NOT EXISTS nodes (
@@ -59,6 +59,13 @@ CREATE INDEX IF NOT EXISTS idx_edges_kind_from ON edges(kind, from_node);
 CREATE INDEX IF NOT EXISTS idx_edges_kind_to   ON edges(kind, to_node);
 "#;
 
+/// v3 records the browser URL a thought was captured from. It is a plain
+/// nullable column: SQLite's `ADD COLUMN` is cheap and does not rewrite rows, so
+/// an existing database keeps its data and simply gains an empty `source_url`.
+const SCHEMA_V3: &str = r#"
+ALTER TABLE nodes ADD COLUMN source_url TEXT;
+"#;
+
 pub fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -93,13 +100,16 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
     if version < 2 {
         conn.execute_batch(SCHEMA_V2)?;
     }
+    if version < 3 {
+        conn.execute_batch(SCHEMA_V3)?;
+    }
     if version < SCHEMA_VERSION {
         conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     }
     Ok(())
 }
 
-const NODE_COLUMNS: &str = "id, text, created_at, updated_at, priority, status, parent_id, position, note, conclusion, inbox, collapsed, source_app, source_title";
+const NODE_COLUMNS: &str = "id, text, created_at, updated_at, priority, status, parent_id, position, note, conclusion, inbox, collapsed, source_app, source_title, source_url";
 
 fn read_node(row: &rusqlite::Row<'_>) -> rusqlite::Result<Node> {
     Ok(Node {
@@ -117,6 +127,7 @@ fn read_node(row: &rusqlite::Row<'_>) -> rusqlite::Result<Node> {
         collapsed: row.get(11)?,
         source_app: row.get(12)?,
         source_title: row.get(13)?,
+        source_url: row.get(14)?,
     })
 }
 
@@ -197,8 +208,8 @@ pub fn apply(conn: &mut Connection, changes: &Changes) -> rusqlite::Result<()> {
         {
             let mut up_node = tx.prepare(
                 "INSERT INTO nodes (id, text, created_at, updated_at, priority, status, parent_id,
-                                    position, note, conclusion, inbox, collapsed, source_app, source_title)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                                    position, note, conclusion, inbox, collapsed, source_app, source_title, source_url)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
                  ON CONFLICT(id) DO UPDATE SET
                    text = excluded.text,
                    updated_at = excluded.updated_at,
@@ -211,7 +222,8 @@ pub fn apply(conn: &mut Connection, changes: &Changes) -> rusqlite::Result<()> {
                    inbox = excluded.inbox,
                    collapsed = excluded.collapsed,
                    source_app = excluded.source_app,
-                   source_title = excluded.source_title",
+                   source_title = excluded.source_title,
+                   source_url = excluded.source_url",
             )?;
             for n in &changes.upsert_nodes {
                 up_node.execute(params![
@@ -229,6 +241,7 @@ pub fn apply(conn: &mut Connection, changes: &Changes) -> rusqlite::Result<()> {
                     n.collapsed,
                     n.source_app,
                     n.source_title,
+                    n.source_url,
                 ])?;
             }
         }
@@ -397,6 +410,7 @@ mod tests {
             collapsed: false,
             source_app: None,
             source_title: None,
+            source_url: None,
         }
     }
 
@@ -652,7 +666,7 @@ mod tests {
     }
 
     #[test]
-    fn v1_database_migrates_to_v2_and_keeps_parent_edges() {
+    fn v1_database_migrates_and_keeps_parent_edges() {
         let dir = temp_dir("migrate-v1");
         let db_path = dir.join("v1.db");
 
@@ -677,12 +691,12 @@ mod tests {
             .unwrap();
         }
 
-        // Opening runs the migration.
+        // Opening runs the migration, all the way up to the current version.
         let conn = open(&db_path).unwrap();
         let version: i32 = conn
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 2);
+        assert_eq!(version, SCHEMA_VERSION);
 
         let snap = load(&conn).unwrap();
         assert_eq!(snap.edges.len(), 1);
@@ -703,6 +717,57 @@ mod tests {
         let snap = load(&conn).unwrap();
         assert_eq!(snap.edges.len(), 2);
         assert_eq!(snap.edges.iter().filter(|e| e.kind == "link").count(), 1);
+    }
+
+    #[test]
+    fn v2_database_migrates_to_v3_and_keeps_data() {
+        let dir = temp_dir("migrate-v2");
+        let db_path = dir.join("v2.db");
+
+        // Build a database that only knows schema v2: no `source_url` column and
+        // `user_version = 2`.
+        {
+            let conn = Connection::open(&db_path).unwrap();
+            conn.execute_batch(SCHEMA_V1).unwrap();
+            conn.execute_batch(SCHEMA_V2).unwrap();
+            conn.pragma_update(None, "user_version", 2).unwrap();
+            conn.execute(
+                "INSERT INTO nodes (id, text, created_at, updated_at, source_app, source_title)
+                 VALUES ('a', 'node a', 1, 1, 'chrome', 'Example')",
+                [],
+            )
+            .unwrap();
+        }
+
+        // Opening runs the migration.
+        let mut conn = open(&db_path).unwrap();
+        let version: i32 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(version, 3);
+
+        // The existing row survived and simply gained an empty `source_url`.
+        let snap = load(&conn).unwrap();
+        assert_eq!(snap.nodes.len(), 1);
+        assert_eq!(snap.nodes[0].id, "a");
+        assert_eq!(snap.nodes[0].text, "node a");
+        assert_eq!(snap.nodes[0].source_app.as_deref(), Some("chrome"));
+        assert!(snap.nodes[0].source_url.is_none());
+
+        // The migrated schema accepts and persists a URL.
+        let mut with_url = node("b", None, false);
+        with_url.source_url = Some("jieni.ai/docs/reading/x".to_string());
+        apply(
+            &mut conn,
+            &Changes {
+                upsert_nodes: vec![with_url],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let snap = load(&conn).unwrap();
+        let b = snap.nodes.iter().find(|n| n.id == "b").unwrap();
+        assert_eq!(b.source_url.as_deref(), Some("jieni.ai/docs/reading/x"));
     }
 
     #[test]

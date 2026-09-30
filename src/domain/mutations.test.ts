@@ -73,9 +73,23 @@ describe('capture', () => {
   })
 
   it('records lightweight capture context', () => {
-    const m = captureMutation('idea', T0, { app: 'Chrome', title: 'Docs' }) as Mutation
-    expect(m.forward.upsert_nodes[0].source_app).toBe('Chrome')
-    expect(m.forward.upsert_nodes[0].source_title).toBe('Docs')
+    const m = captureMutation('idea', T0, {
+      app: 'Chrome',
+      title: 'Docs',
+      url: 'https://example.com/reading',
+    }) as Mutation
+    const node = m.forward.upsert_nodes[0]
+    expect(node.source_app).toBe('Chrome')
+    expect(node.source_title).toBe('Docs')
+    expect(node.source_url).toBe('https://example.com/reading')
+  })
+
+  it('leaves every source field null when no context is given', () => {
+    const m = captureMutation('idea', T0) as Mutation
+    const node = m.forward.upsert_nodes[0]
+    expect(node.source_app).toBeNull()
+    expect(node.source_title).toBeNull()
+    expect(node.source_url).toBeNull()
   })
 })
 

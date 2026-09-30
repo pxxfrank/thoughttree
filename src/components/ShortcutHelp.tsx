@@ -227,6 +227,20 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="field">
+            <label className="settings-row" style={{ alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={state.captureUrl}
+                onChange={(event) => void store.setCaptureUrl(event.target.checked)}
+              />
+              <span>{t('settings.captureUrl')}</span>
+            </label>
+            <div className="hint" style={{ marginTop: 6 }}>
+              {t('settings.captureUrlHint')}
+            </div>
+          </div>
+
+          <div className="field">
             <div className="field-label">{t('help.shortcut')}</div>
             <ShortcutRecorder />
             <div className="hint" style={{ marginTop: 6 }}>

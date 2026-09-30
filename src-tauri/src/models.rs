@@ -18,6 +18,10 @@ pub struct Node {
     pub collapsed: bool,
     pub source_app: Option<String>,
     pub source_title: Option<String>,
+    /// The browser address bar at capture time, when it could be read. Optional
+    /// on the way in so a changeset written before the feature still applies.
+    #[serde(default)]
+    pub source_url: Option<String>,
 }
 
 /// An edge records *why* one node relates to another. `kind` discriminates the
@@ -73,4 +77,66 @@ pub struct Changes {
     pub delete_nodes: Vec<String>,
     #[serde(default)]
     pub delete_edges: Vec<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Changes;
+
+    /// A changeset written before `source_url` existed must still apply: the new
+    /// field is optional on the way in and defaults to `None`.
+    #[test]
+    fn changes_without_source_url_deserializes() {
+        let raw = r#"{
+            "upsert_nodes": [{
+                "id": "a",
+                "text": "hello",
+                "created_at": 1,
+                "updated_at": 1,
+                "priority": "normal",
+                "status": "open",
+                "parent_id": null,
+                "position": 0.0,
+                "note": null,
+                "conclusion": null,
+                "inbox": false,
+                "collapsed": false,
+                "source_app": "chrome",
+                "source_title": "Example"
+            }]
+        }"#;
+        let changes: Changes = serde_json::from_str(raw).expect("changeset deserializes");
+        assert_eq!(changes.upsert_nodes.len(), 1);
+        assert_eq!(changes.upsert_nodes[0].id, "a");
+        assert!(changes.upsert_nodes[0].source_url.is_none());
+    }
+
+    /// And when the front end does send a URL, it round-trips.
+    #[test]
+    fn changes_with_source_url_deserializes() {
+        let raw = r#"{
+            "upsert_nodes": [{
+                "id": "a",
+                "text": "hello",
+                "created_at": 1,
+                "updated_at": 1,
+                "priority": "normal",
+                "status": "open",
+                "parent_id": null,
+                "position": 0.0,
+                "note": null,
+                "conclusion": null,
+                "inbox": false,
+                "collapsed": false,
+                "source_app": "chrome",
+                "source_title": "Example",
+                "source_url": "jieni.ai/docs/reading/x"
+            }]
+        }"#;
+        let changes: Changes = serde_json::from_str(raw).expect("changeset deserializes");
+        assert_eq!(
+            changes.upsert_nodes[0].source_url.as_deref(),
+            Some("jieni.ai/docs/reading/x")
+        );
+    }
 }

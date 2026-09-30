@@ -25,6 +25,7 @@ export interface Node {
   collapsed: boolean
   source_app: string | null
   source_title: string | null
+  source_url: string | null
 }
 
 /**

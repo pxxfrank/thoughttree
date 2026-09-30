@@ -12,8 +12,12 @@ export const expandOrbWindow = (): Promise<unknown> => invoke('orb_expand_window
 export const setAppTheme = (theme: string): Promise<unknown> => invoke('set_app_theme', { theme })
 export const fitMainToScreen = (width: number, height: number): Promise<unknown> =>
   invoke('fit_main_to_screen', { width, height })
-export const captureSourceContext = (): Promise<{ app: string | null; title: string | null }> =>
-  invoke('capture_source_context')
+export const captureSourceContext = (): Promise<{
+  app: string | null
+  title: string | null
+  url: string | null
+}> => invoke('capture_source_context')
+export const openUrl = (url: string): Promise<void> => invoke('open_url', { url })
 export const checkShortcut = (): Promise<unknown> => invoke('shortcut_status')
 
 /** One rotating `.db` snapshot written by the Rust side at launch. */

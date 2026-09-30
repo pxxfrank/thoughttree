@@ -53,7 +53,7 @@ export function Capture() {
     }
     // The context lookup must never block a capture: a failure here just means
     // the thought is filed without a source.
-    const source = await captureSourceContext().catch(() => ({ app: null, title: null }))
+    const source = await captureSourceContext().catch(() => ({ app: null, title: null, url: null }))
     store.capture(value, source)
     setText('')
     setSaved(true)

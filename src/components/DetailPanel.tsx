@@ -6,6 +6,7 @@ import type { Edge, Node, Status } from '../domain/types'
 import { useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
 import { useEdgeFor, useLinksFor } from '../state/selectors'
+import { openUrl } from '../storage/desktop-actions'
 
 const STATUSES: { value: Status; key: string }[] = [
   { value: 'open', key: 'status.open' },
@@ -235,12 +236,33 @@ export function DetailPanel() {
           />
         </Field>
 
-        {(node.source_app || node.source_title) && (
+        {(node.source_app || node.source_title || node.source_url) && (
           <Field label={t('field.source')}>
             <div className="field-value">{node.source_app ?? t('field.source.unknown')}</div>
             {node.source_title && (
               <div className="hint" style={{ marginTop: 5 }}>
                 {node.source_title}
+              </div>
+            )}
+            {node.source_url && (
+              <div className="hint" style={{ marginTop: 5 }}>
+                <button
+                  type="button"
+                  title={t('field.source.open')}
+                  onClick={() => void openUrl(node.source_url as string)}
+                  style={{
+                    padding: 0,
+                    border: 'none',
+                    background: 'none',
+                    font: 'inherit',
+                    textAlign: 'left',
+                    color: 'var(--accent-text)',
+                    cursor: 'pointer',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {node.source_url}
+                </button>
               </div>
             )}
           </Field>

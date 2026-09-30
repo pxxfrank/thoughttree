@@ -71,13 +71,26 @@ pub fn data_dir(app: tauri::AppHandle) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
+/// Opens a captured link in the user's default browser.
+///
+/// The URL comes from the front end, so only `http`/`https` are accepted: this
+/// must never become a way to launch an arbitrary protocol handler or a local
+/// file. The scheme check is the first thing that runs, before any Win32 call.
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    if !crate::browser::is_allowed_url(&url) {
+        return Err("error.invalidUrl".to_string());
+    }
+    crate::browser::open_url(&url)
+}
+
 fn snapshot_json(state: &State<'_, AppDb>, pretty: bool) -> Result<String, String> {
     state.with(|conn| {
         let snapshot = db::load(conn).map_err(|e| e.to_string())?;
         let payload = ExportFile {
             app: "ThoughtTree".to_string(),
             format: EXPORT_FORMAT.to_string(),
-            version: 2,
+            version: 3,
             exported_at: db::now_ms(),
             nodes: snapshot.nodes,
             edges: snapshot.edges,

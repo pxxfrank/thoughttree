@@ -579,4 +579,49 @@ branches" can legitimately point back up the tree. Only a self-link is refused
 
 **Date**: 2026-09-29
 
+---
+
+## D031 — The browser's address bar is read over UI Automation, not a browser extension
+
+Capture context could name the app and the window, but not the page. The URL is
+what makes the record answer "where was I", so it is worth having.
+
+Three offline ways exist. A **browser extension** is the most reliable, but it
+must be installed into every browser and every profile — real friction, and the
+product stops being the one thing you install. The browser's **local History
+SQLite database** needs no dependency, but it has to be copied to be read while
+the browser holds the lock, History can be tens of megabytes, and "most recent
+visit" is only a guess at which tab is in front. **UI Automation** reads the
+address bar straight out of the running window.
+
+UI Automation wins: no extension, works across Chromium and Gecko, and the only
+cost is one Windows API call. `windows` was already in the dependency tree, so
+it added no new crate.
+
+Three things make it work in practice, and each was found by probing the real
+machine rather than by reading docs:
+
+- The omnibox is matched by **ClassName `OmniboxViewViews`**. Its `AutomationId`
+  is a per-session `view_1012` and its `Name` is localised ("網址與搜尋列" here),
+  so neither of those can be used.
+- **Electron apps share Chromium's window class.** Four windows on the dev
+  machine — Feishu, an editor, a launcher — look exactly like Chrome to a
+  window-class check. The only honest test is whether an omnibox exists.
+- Chromium **lazily enables accessibility** when first queried and sometimes
+  returns an empty string; an empty read keeps the last good URL rather than
+  clearing it.
+
+UI Automation is far too heavy for the 400 ms foreground sampler, so it runs at
+most once a second, only while a known browser is in front, and never at all
+when the `capture_url` setting is `off`.
+
+**Trade-off**: A URL is far more sensitive than an app name — it carries search
+terms and, as observed here, conversation ids. It is recorded locally like
+everything else, but the setting to disable it exists because this is the one
+field a user may reasonably not want. Opening it goes through its own command
+that accepts only `http`/`https`, so a recorded value can never be turned into a
+launch of an arbitrary scheme or a local file.
+
+**Date**: 2026-09-30
+
 

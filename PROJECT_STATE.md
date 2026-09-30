@@ -149,7 +149,9 @@ window never disagree.
 - **Conclusions** — every question you have written an answer for, with the
   path it came from.
 - **Capture context** — a background sampler records the last foreground window
-  that is *not* ours, so every capture knows which app it came from.
+  that is *not* ours, so every capture knows which app it came from; while a
+  browser is in front it also reads the address bar over UI Automation, so it
+  knows *which page* (D031).
 - **Import + restore** — a JSON export can be imported back (undoable), and a
   rotating `.db` backup can be restored from the UI.
 - **Cross-branch relations** — an edge is either a `parent` edge or a `link`;

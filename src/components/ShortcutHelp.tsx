@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { getVersion } from '@tauri-apps/api/app'
 import { open } from '@tauri-apps/plugin-dialog'
 import { LOCALES, useI18n } from '../i18n/useI18n'
 import { useAppState, useStore } from '../state/context'
@@ -152,6 +153,21 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
   const { t, locale } = useI18n()
   const theme = state.theme
 
+  // The bundle's own version is the authoritative one — it is what the
+  // installer reports. `__APP_VERSION__` (from package.json, injected by Vite)
+  // stands in until the lookup resolves, and is all there is in a plain
+  // browser, where no bundle exists.
+  const [version, setVersion] = useState<string>(__APP_VERSION__)
+  useEffect(() => {
+    void (async () => {
+      try {
+        setVersion(await getVersion())
+      } catch {
+        /* no bundle here; the package version stands */
+      }
+    })()
+  }, [])
+
   const shortcuts: [string, string][] = [
     ['↑ / ↓', t('keys.move')],
     ['← / →', t('keys.collapse')],
@@ -301,6 +317,8 @@ export function ShortcutHelp({ onClose }: { onClose: () => void }) {
               </button>
             </div>
           </div>
+
+          <div className="dialog-foot">{t('help.version', { version })}</div>
         </div>
       </div>
     </div>

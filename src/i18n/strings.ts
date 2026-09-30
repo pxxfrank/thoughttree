@@ -173,6 +173,7 @@ const en: Dict = {
   'relation.depends_on.hint': 'The parent must be solved after this',
 
   'help.title': 'Keyboard & settings',
+  'help.version': 'Version {version}',
   'help.close': 'Close',
   'help.language': 'Language',
   'help.theme': 'Theme',
@@ -420,6 +421,7 @@ const zh: Dict = {
   'relation.depends_on.hint': '必须先解决它，才能解决父问题',
 
   'help.title': '快捷键与设置',
+  'help.version': '版本 {version}',
   'help.close': '关闭',
   'help.language': '语言',
   'help.theme': '主题',

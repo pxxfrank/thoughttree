@@ -32,6 +32,8 @@ test('the Focus panel and the undo/redo buttons actually do something', async ({
   await expect(page.locator('.focus-item')).toHaveCount(1)
 
   // The Focus panel's own button is bound too: leaving focus returns to Inbox.
-  await page.locator('.focus-body .btn', { hasText: 'Leave focus' }).click()
-  await expect(page.locator('.workspace > .panel').first().locator('.panel-title')).toHaveText('Inbox')
+  // It lives in the panel head now, not at the foot of the list.
+  const focusPanel = page.locator('.workspace > .panel').first()
+  await focusPanel.locator('.panel-head .btn', { hasText: 'Leave focus' }).click()
+  await expect(focusPanel.locator('.panel-title')).toHaveText('Inbox')
 })

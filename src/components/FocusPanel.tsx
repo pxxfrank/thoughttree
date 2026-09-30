@@ -10,6 +10,26 @@ function contextLabel(nodes: Node[], node: Node, root: string): string {
   return chain.map((n) => n.text).join(' › ')
 }
 
+/** Leaving a mode should look like an action, not like a stray label. */
+function BackIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </svg>
+  )
+}
+
 export function FocusPanel() {
   const store = useStore()
   const state = useAppState()
@@ -24,6 +44,13 @@ export function FocusPanel() {
       <div className="panel-head">
         <span className="panel-title">{t('panel.focus')}</span>
         <span className="count">{targets.length}</span>
+        <span className="spacer" />
+        {/* In the head, not at the foot of the list: this is how you get out of
+            the mode, so it should be the first thing you can reach. */}
+        <button className="btn" onClick={store.toggleFocusMode}>
+          <BackIcon />
+          {t('focus.leave')}
+        </button>
       </div>
       <div className="focus-body">
         <div className="focus-title">{t('focus.title')}</div>
@@ -78,12 +105,6 @@ export function FocusPanel() {
             {t('focus.waiting', { n: inbox.length })}
           </div>
         )}
-
-        <div style={{ marginTop: 18 }}>
-          <button className="btn ghost" onClick={store.toggleFocusMode}>
-            {t('focus.leave')}
-          </button>
-        </div>
       </div>
     </section>
   )

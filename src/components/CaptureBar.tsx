@@ -21,26 +21,28 @@ export function CaptureBar() {
 
   return (
     <div className="capture-bar">
-      <input
-        ref={inputRef}
-        value={text}
-        placeholder={t('capture.placeholder')}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (isComposing(event)) return
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            void submit()
-          } else if (event.key === 'Escape') {
-            setText('')
-            event.currentTarget.blur()
-          }
-        }}
-        data-capture-bar
-      />
-      <button className="btn primary" onClick={() => void submit()} disabled={!text.trim()}>
-        {t('capture.button')}
-      </button>
+      <div className="capture-composer">
+        <input
+          ref={inputRef}
+          value={text}
+          placeholder={t('capture.placeholder')}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={(event) => {
+            if (isComposing(event)) return
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              void submit()
+            } else if (event.key === 'Escape') {
+              setText('')
+              event.currentTarget.blur()
+            }
+          }}
+          data-capture-bar
+        />
+        <button className="btn primary" onClick={() => void submit()} disabled={!text.trim()}>
+          {t('capture.button')}
+        </button>
+      </div>
       <span className="capture-hint">
         {t('capture.hint', { shortcut: state.shortcut || t('capture.noShortcut') })}
       </span>

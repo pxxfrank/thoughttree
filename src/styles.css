@@ -958,31 +958,48 @@ textarea {
   /* Deliberately lighter than the panels: this is the one place you type, and
      against the panel colour it was invisible. */
   background: var(--panel-2);
-  padding: 10px 12px;
+  padding: 5px 12px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
 }
 
-.capture-bar input {
-  flex: 1;
+/* One bordered control, capped and centred, instead of a full-bleed band. A
+   box you type in should look like a place to type, not like a footer: the
+   input used to stretch the whole window width for a few words. */
+.capture-composer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 560px;
   background: var(--panel-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  padding: 9px 12px;
-  color: var(--text);
+  padding: 2px 4px 2px 11px;
 }
-.capture-bar input:focus {
+.capture-composer:focus-within {
   border-color: var(--accent);
   background: var(--input-bg);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
-.capture-bar input::placeholder {
+.capture-composer input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 6px 0;
+  color: var(--text);
+}
+.capture-composer input::placeholder {
   color: var(--muted);
 }
 
 .capture-hint {
+  flex: none;
   font-size: 11px;
   color: var(--faint);
   white-space: nowrap;

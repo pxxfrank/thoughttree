@@ -71,7 +71,7 @@ export function InboxPanel() {
         <div className="bulk-bar">
           <span className="count">{t('inbox.selected', { n: selection.length })}</span>
           <span className="spacer" />
-          <button className="btn" onClick={() => bulk('important')}>
+          <button className="btn important" onClick={() => bulk('important')}>
             {t('inbox.important')}
           </button>
           <button className="btn" onClick={() => bulk('later')}>
@@ -83,7 +83,7 @@ export function InboxPanel() {
           <button className="btn" onClick={() => bulk('archive')}>
             {t('inbox.archive')}
           </button>
-          <button className="btn" onClick={() => bulk('delete')}>
+          <button className="btn danger" onClick={() => bulk('delete')}>
             {t('inbox.delete')}
           </button>
         </div>

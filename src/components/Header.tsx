@@ -120,8 +120,9 @@ export function Header() {
         <span className="spacer" />
 
         <button
-          className="btn"
+          className="btn icon"
           disabled={!state.undoLabelKey}
+          aria-label={t('action.undo.label')}
           title={
             state.undoLabelKey
               ? t('action.undo.title', { label: t(state.undoLabelKey, state.undoLabelParams) })
@@ -129,11 +130,12 @@ export function Header() {
           }
           onClick={store.undo}
         >
-          {t('action.undo')}
+          ↶
         </button>
         <button
-          className="btn"
+          className="btn icon"
           disabled={!state.redoLabelKey}
+          aria-label={t('action.redo.label')}
           title={
             state.redoLabelKey
               ? t('action.redo.title', { label: t(state.redoLabelKey, state.redoLabelParams) })
@@ -141,7 +143,7 @@ export function Header() {
           }
           onClick={store.redo}
         >
-          {t('action.redo')}
+          ↷
         </button>
         <button className="btn" onClick={store.openSearch} title={t('keys.search')}>
           {t('nav.search')}
@@ -149,7 +151,9 @@ export function Header() {
         <button className="btn" onClick={() => setShowHelp(true)} title={t('action.keys.title')}>
           {t('action.keys')}
         </button>
-        <button className="btn" onClick={() => void quitApp()} title={t('action.quit.title')}>
+        {/* Rare and irreversible, so it must not carry the same weight as the
+            actions next to it. */}
+        <button className="btn ghost" onClick={() => void quitApp()} title={t('action.quit.title')}>
           {t('action.quit')}
         </button>
       </header>

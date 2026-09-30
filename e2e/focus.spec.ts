@@ -21,12 +21,13 @@ test('the Focus panel and the undo/redo buttons actually do something', async ({
   await expect(page.locator('.focus-item', { hasText: text })).toBeVisible()
 
   // Undo the "mark important": the only focus target disappears.
-  await page.locator('.header .btn', { hasText: 'Undo' }).click()
+  // Located by accessible name: undo/redo are icon-only now.
+  await page.locator('.header button[aria-label="Undo"]').click()
   await expect(page.locator('.focus-item')).toHaveCount(0)
   await expect(page.locator('.focus-body .empty')).toBeVisible()
 
   // Redo brings it back.
-  await page.locator('.header .btn', { hasText: 'Redo' }).click()
+  await page.locator('.header button[aria-label="Redo"]').click()
   await expect(page.locator('.focus-item', { hasText: text })).toBeVisible()
   await expect(page.locator('.focus-item')).toHaveCount(1)
 

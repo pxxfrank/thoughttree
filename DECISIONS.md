@@ -624,4 +624,30 @@ launch of an arbitrary scheme or a local file.
 
 **Date**: 2026-09-30
 
+---
+
+## D032 — Colour on a button has to mean something
+
+Two rows had become walls of identical buttons — the header's right side (undo,
+redo, search, keys, quit) and the Inbox bulk bar (important, later, open,
+archive, delete). Nothing read as more important than anything else, including
+delete, which is the one action that cannot be taken back.
+
+The rule: an action may carry colour only when colour *already* means something
+in this palette. Green is "this commits", amber is ★ important, red is "this
+cannot be undone". Everything else stays neutral, which leaves at most one
+green button on screen at a time.
+
+Applied: undo and redo became glyph-only (`↶` `↷`, the glyphs the labels already
+carried — both are high-frequency and self-explanatory, and the tooltip still
+names the exact mutation, which is the part worth keeping), quit dropped to
+ghost, delete went red, and important took the amber token ★ already uses.
+
+Deliberately *not* applied: the view tabs and the filter chips, which already
+express state through `.on` — colouring those too is the move that turns a calm
+interface into a shouting one — and the panel buttons that are already primary
+or ghost.
+
+**Date**: 2026-09-30
+
 

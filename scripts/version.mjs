@@ -14,9 +14,13 @@
  * `Cargo.lock` follows. `check` asserts all of that, and the build runs it, so
  * drift fails the build instead of shipping.
  *
- *   node scripts/version.mjs            show the current version and where it lives
- *   node scripts/version.mjs check      exit 1 if anything disagrees
- *   node scripts/version.mjs set 0.2.0  write 0.2.0 everywhere
+ * Note: the bare name `pnpm version` belongs to pnpm itself, which bumps the
+ * version instead of running any of this — quietly, and from its own prompt.
+ * Hence the `:show` / `:set` / `:check` suffixes.
+ *
+ *   pnpm version:show            show the current version and where it lives
+ *   pnpm version:check           exit 1 if anything disagrees
+ *   pnpm version:set 0.2.0       write 0.2.0 everywhere
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -95,7 +99,7 @@ function check() {
   if (problems.length > 0) {
     console.error(`Version drift — package.json says ${expected}:`)
     for (const problem of problems) console.error(`  - ${problem}`)
-    console.error('\nRun: node scripts/version.mjs set <version>')
+    console.error('\nRun: pnpm version:set <version>')
     process.exit(1)
   }
 
@@ -135,8 +139,9 @@ function report() {
   for (const entry of survey()) {
     console.log(`  ${entry.value.padEnd(16)} ${entry.file}  (${entry.explains})`)
   }
-  console.log('\n  set <version>   write a new version everywhere')
-  console.log('  check           fail if any of them disagree')
+  console.log('\n  pnpm version:set <version>   write a new version everywhere')
+  console.log('  pnpm version:check           fail if any of them disagree')
+  console.log('  pnpm version:show            this')
 }
 
 const [command, argument] = process.argv.slice(2)

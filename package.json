@@ -13,7 +13,7 @@
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
     "test:rust": "node scripts/run-rust.cjs test",
-    "version": "node scripts/version.mjs",
+    "version:show": "node scripts/version.mjs",
     "version:set": "node scripts/version.mjs set",
     "version:check": "node scripts/version.mjs check",
     "tauri": "tauri",

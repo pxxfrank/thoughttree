@@ -707,4 +707,44 @@ it that way for a reason rather than by omission.
 
 **Date**: 2026-09-30
 
+---
+
+## D035 — Focus is one chosen question, not the starred set
+
+Focus used to be "every ★-important, still-open question", implemented as one
+boolean that was simultaneously a view, a tree filter and a flag. The membership
+test was `important && open`, and the tree filter kept only the branches that
+passed it. That made Focus a *view of a set*, and the set had a hole in it: a
+sub-question that was not itself starred failed the test, so **it disappeared
+from the tree the moment you focused its parent** — the one moment you were most
+likely to be working through those sub-questions. The ★ flag was doing two jobs
+(steering the Inbox triage queue *and* defining the mainline), and nobody could
+see the second one.
+
+Focus is now one chosen question plus everything filed under it. `focusRoot:
+string | null` replaces `focusMode: boolean`; `focusScope` turns that id into
+the id set (the root and its descendants), and the visibility test is "the root,
+always, whatever its status; otherwise only ids inside its subtree" — with the
+user's own `showLater` / `showDone` / `showArchived` / `onlyUnexplained` filters
+still applied below. So a non-starred child stays put, and ★ goes back to being
+purely a triage marker for the Inbox.
+
+**`leftView` is decoupled from the filter.** `setView` sets only which panel
+takes the left column; `focusRoot` is the whole truth for filtering. Opening the
+Focus tab therefore shows an (possibly empty) workspace *without* narrowing the
+tree, and jumping to a question from search (`revealNode`) clears the focus so
+the target is never hidden behind an empty Focus panel.
+
+**`focusRoot` is UI state, not a mutation.** It travels through `patch` exactly
+like `selectedId`, so it is not part of a `Mutation`: undo and redo never touch
+it, it is never written to SQLite, and it is never broadcast to the other
+windows. A focus is a place you are looking, not a change to the graph.
+
+**Trade-off**: a focus is lost on reload and is per-window, which is correct for
+a view but means it cannot be "restored". And the ★ flag no longer has any
+effect on what the tree shows; if a user expects starring to curate the mainline,
+the only signal left is the detail panel's focus button and Ctrl+Shift+F.
+
+**Date**: 2026-10-08
+
 

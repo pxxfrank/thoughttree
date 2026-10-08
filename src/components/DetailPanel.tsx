@@ -107,6 +107,22 @@ export function DetailPanel() {
       <div className="panel-head">
         <span className="panel-title">{t('panel.question')}</span>
         <span className="spacer" />
+        {/* The way into Focus: one question and everything filed under it.
+            A bordered button, not ghost — this is an action, and a borderless
+            one reads as a label. */}
+        <button
+          className={state.focusRoot === node.id ? 'btn on' : 'btn'}
+          title={
+            state.focusRoot === node.id
+              ? t('focus.focused')
+              : `${t('detail.focus')} (Ctrl+Shift+F)`
+          }
+          onClick={() =>
+            state.focusRoot === node.id ? store.clearFocus() : store.focusOn(node.id)
+          }
+        >
+          {state.focusRoot === node.id ? t('focus.focused') : t('detail.focus')}
+        </button>
         <button
           className="btn ghost icon"
           title={t('detail.delete.title')}

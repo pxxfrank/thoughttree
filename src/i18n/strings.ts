@@ -60,12 +60,9 @@ const en: Dict = {
   'empty.detail':
     'Select a question to see its status, its relation to its parent, and your notes.',
   'empty.focus':
-    'Nothing in the tree is both ★ important and still open, so there is nothing to focus on yet.',
+    'No question is focused yet. Open a question and choose “Focus on this question”.',
   'focus.how':
-    'Focus shows only the ★ important questions that are still open, plus the ancestors that give them context.',
-  'focus.starred':
-    '{n} starred question(s) are still in the Inbox — they are not in the tree yet, so Focus does not count them.',
-  'focus.goInbox': 'Leave focus and file them',
+    'Focus keeps one question on screen together with everything filed under it, so its sub-questions stay in view. Open a question and choose “Focus on this question” to start.',
 
   'inbox.grip': 'Drag into the tree',
   'inbox.selected': '{n} selected',
@@ -77,12 +74,13 @@ const en: Dict = {
   'inbox.archive': 'Archive',
   'inbox.delete': 'Delete',
 
-  'focus.title': 'Current important questions',
+  'focus.title': 'The question you are solving',
   'focus.sub':
-    'Everything else is still saved. It is just not what you are solving right now.',
+    'Focus is about one question: it is pinned here, with everything filed under it. The rest of the tree is still saved, just out of the way.',
+  'focus.focused': 'Focused',
+  'focus.subquestions': 'Sub-questions',
   'focus.waiting': '{n} unprocessed thought(s) waiting in the Inbox.',
   'focus.leave': 'Leave focus',
-  'focus.thread': 'Main thread',
 
   'review.title': 'A little to revisit',
   'review.sub':
@@ -128,6 +126,7 @@ const en: Dict = {
   'detail.relations': 'Relations',
   'detail.noChildren': 'No sub-questions yet.',
   'detail.delete.title': 'Delete this question and everything under it',
+  'detail.focus': 'Focus on this question',
 
   'capture.placeholder': 'Capture a thought or question…',
   'capture.button': 'Capture',
@@ -212,7 +211,7 @@ const en: Dict = {
   'keys.later': 'Toggle Later',
   'keys.done': 'Toggle Done',
   'keys.capture': 'Focus the capture bar',
-  'keys.focus': 'Toggle Focus mode',
+  'keys.focus': 'Focus on the selected question',
   'keys.undo': 'Undo / redo',
   'keys.escape': 'Deselect, or close a popover',
   'keys.search': 'Open search',
@@ -313,10 +312,9 @@ const zh: Dict = {
   'empty.inbox': '收集箱是空的。所有随手记下的想法都先落在这里，不分类、不过滤。',
   'empty.inboxHint': '把条目拖进研究树，或者多选后一起归档。',
   'empty.detail': '选中一个问题，就能看到它的状态、它与父问题的关系，以及你的笔记。',
-  'empty.focus': '研究树里还没有「★ 重要且未完成」的问题，所以聚焦暂时没有内容。',
-  'focus.how': '聚焦只显示「★ 重要且未完成」的问题，以及给它们提供上下文的父级问题。',
-  'focus.starred': '有 {n} 条 ★ 重要的问题还在收集箱里 —— 它们还没进研究树，所以聚焦不算它们。',
-  'focus.goInbox': '退出聚焦，去收集箱处理',
+  'empty.focus': '还没有聚焦任何问题。打开一个问题，选择「聚焦这个问题」。',
+  'focus.how':
+    '聚焦会把一个问题以及它下面的所有子问题留在视野里，所以子问题不会消失。打开一个问题，选择「聚焦这个问题」开始。',
 
   'inbox.grip': '拖入研究树',
   'inbox.selected': '已选 {n} 项',
@@ -328,11 +326,12 @@ const zh: Dict = {
   'inbox.archive': '归档',
   'inbox.delete': '删除',
 
-  'focus.title': '当前重要问题',
-  'focus.sub': '其他内容都还在，只是此刻不是你正在解决的那件事。',
+  'focus.title': '你正在解决的问题',
+  'focus.sub': '聚焦只针对一个问题：它被固定在这里，连同它下面的一切；树里的其他部分都还在，只是退到了一旁。',
+  'focus.focused': '已聚焦',
+  'focus.subquestions': '子问题',
   'focus.waiting': '收集箱里还有 {n} 条未处理的想法。',
   'focus.leave': '退出聚焦',
-  'focus.thread': '主线',
 
   'review.title': '回头看看',
   'review.sub': '这里没有目标，也没有连续打卡。只是把写过的东西再拿给你看一眼。',
@@ -376,6 +375,7 @@ const zh: Dict = {
   'detail.relations': '关联',
   'detail.noChildren': '还没有子问题。',
   'detail.delete.title': '删除这个问题及其所有子问题',
+  'detail.focus': '聚焦这个问题',
 
   'capture.placeholder': '记下一件事或一个问题…',
   'capture.button': '记录',
@@ -457,7 +457,7 @@ const zh: Dict = {
   'keys.later': '切换「稍后」',
   'keys.done': '切换「已完成」',
   'keys.capture': '聚焦底部输入框',
-  'keys.focus': '切换聚焦模式',
+  'keys.focus': '聚焦选中的问题',
   'keys.undo': '撤销 / 重做',
   'keys.escape': '取消选中或关闭弹层',
   'keys.search': '打开搜索',

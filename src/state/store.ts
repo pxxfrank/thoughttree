@@ -1,6 +1,6 @@
 import { applyChanges, fromSnapshot } from '../domain/changes'
 import type { EntityState } from '../domain/changes'
-import { filterTree, inboxOrder, focusList, makeVisibility } from '../domain/focus'
+import { filterTree, inboxOrder, makeVisibility, focusScope } from '../domain/focus'
 import {
   DomainError,
   addChildMutation,
@@ -23,7 +23,7 @@ import {
   type MutationContext,
 } from '../domain/mutations'
 import { edgeForNode, linkedNodeIds, linksForNode, unexplainedNodeIds } from '../domain/relations'
-import { buildForest, indexChildren, orderWithMany } from '../domain/tree'
+import { buildForest, indexChildren, orderWithMany, subtreeRows } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
 import type { Changes, Edge, Node, Priority, RelationType, Snapshot, Status } from '../domain/types'
 import { detectLocale, type Locale } from '../i18n/strings'
@@ -55,9 +55,14 @@ export interface AppState extends EntityState {
   editingId: string | null
   creating: CreateTarget
   searching: boolean
-  /** Which panel takes the left column. Focus also drives the tree filter. */
+  /** Which panel takes the left column. */
   leftView: 'inbox' | 'focus' | 'review' | 'conclusions'
-  focusMode: boolean
+  /**
+   * The one question Focus is pinned to, or null. This is UI state, not a
+   * mutation (D035): it travels through `patch` like `selectedId`, so it is
+   * never undoable, never persisted and never broadcast.
+   */
+  focusRoot: string | null
   /** Picked once per session; Review reshuffles it on demand. */
   sessionSeed: number
   showLater: boolean
@@ -112,7 +117,7 @@ function initialState(): AppState {
     creating: null,
     searching: false,
     leftView: 'inbox',
-    focusMode: false,
+    focusRoot: null,
     sessionSeed: Date.now(),
     showLater: true,
     showDone: true,
@@ -421,9 +426,15 @@ export class AppStore {
     const selection = ids.includes(this.state.selectedId ?? '')
       ? null
       : this.state.selectedId
+    // A delete cascades to the subtree, so check what survived rather than the
+    // id list: removing an ancestor of the focused question must clear the
+    // focus too, or the panel would pin a question that is gone.
+    const clearsFocus =
+      this.state.focusRoot !== null && !this.state.nodes[this.state.focusRoot]
     this.patch({
       selectedId: selection,
       inboxSelection: this.state.inboxSelection.filter((id) => !ids.includes(id)),
+      ...(clearsFocus ? { focusRoot: null, leftView: 'inbox' as const } : {}),
     })
   }
 
@@ -576,16 +587,51 @@ export class AppStore {
    */
   revealNode(id: string): void {
     this.run(expandAncestorsMutation(this.allNodes(), id))
-    this.patch({ selectedId: id, searching: false, focusMode: false })
+    // A jump must land on screen: clearing the focus keeps a filtered tree from
+    // hiding the very node we are revealing behind an empty Focus panel.
+    const leavingFocus = this.state.leftView === 'focus'
+    this.patch({
+      selectedId: id,
+      searching: false,
+      focusRoot: null,
+      ...(leavingFocus ? { leftView: 'inbox' as const } : {}),
+    })
   }
 
-  toggleFocusMode(): void {
-    this.setView(this.state.leftView === 'focus' ? 'inbox' : 'focus')
+  /**
+   * Pins Focus to one question: opens the folded branches above it so it is not
+   * stuck behind a collapsed ancestor, selects it and clears the search overlay.
+   */
+  focusOn(id: string): void {
+    if (!this.state.nodes[id]) return
+    this.run(expandAncestorsMutation(this.allNodes(), id))
+    this.patch({ focusRoot: id, leftView: 'focus', selectedId: id, searching: false })
   }
 
-  /** Switches the left column; Focus is the only view that filters the tree. */
+  clearFocus(): void {
+    this.patch({ focusRoot: null, leftView: 'inbox' })
+  }
+
+  /**
+   * The keyboard entry point (Ctrl+Shift+F): toggle the current selection as
+   * the focus, or open the (possibly empty) Focus panel when nothing is picked.
+   */
+  focusSelection(): void {
+    const id = this.state.selectedId
+    if (!id) {
+      this.setView('focus')
+      return
+    }
+    if (this.state.focusRoot === id) this.clearFocus()
+    else this.focusOn(id)
+  }
+
+  /**
+   * Switches the left column. It does not touch the tree filter: `focusRoot` is
+   * the whole truth for that now (D035).
+   */
   setView(view: AppState['leftView']): void {
-    this.patch({ leftView: view, focusMode: view === 'focus' })
+    this.patch({ leftView: view })
   }
 
   /** The one thing that moves the Review seed after startup. */
@@ -635,7 +681,7 @@ export class AppStore {
 
   visibility() {
     return makeVisibility({
-      focusMode: this.state.focusMode,
+      focus: this.focusScope(),
       showLater: this.state.showLater,
       showDone: this.state.showDone,
       showArchived: this.state.showArchived,
@@ -653,8 +699,20 @@ export class AppStore {
     return inboxOrder(this.allNodes())
   }
 
-  focusTargets(): Node[] {
-    return focusList(this.allNodes())
+  /** The focused question and every id under it, or null when there is none. */
+  private focusScope(): { root: string; ids: ReadonlySet<string> } | null {
+    return focusScope(this.allNodes(), this.state.focusRoot)
+  }
+
+  /** The one question Focus is pinned to, or null. */
+  focusedNode(): Node | null {
+    return this.state.focusRoot ? this.state.nodes[this.state.focusRoot] ?? null : null
+  }
+
+  /** The focused question and its descendants as a flat, depth-annotated outline. */
+  focusedRows(): { node: Node; depth: number }[] {
+    if (!this.state.focusRoot) return []
+    return subtreeRows(this.allNodes(), this.state.focusRoot)
   }
 
   edgeFor(nodeId: string): Edge | undefined {

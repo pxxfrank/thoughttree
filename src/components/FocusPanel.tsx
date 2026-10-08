@@ -1,13 +1,14 @@
-import { useAppState, useStore } from '../state/context'
-import { useFocusList, useInbox, useStarredInInbox } from '../state/selectors'
-import { ancestorsOf } from '../domain/tree'
+import { useStore } from '../state/context'
+import { useFocusedNode, useFocusSubtree, useInbox, usePath } from '../state/selectors'
 import type { Node } from '../domain/types'
 import { useI18n } from '../i18n/useI18n'
 
-function contextLabel(nodes: Node[], node: Node, root: string): string {
-  const chain = ancestorsOf(nodes, node.id)
-  if (chain.length === 0) return root
-  return chain.map((n) => n.text).join(' › ')
+/** One glyph per row: ★ important, ✓ done, ↓ later, · open. */
+function statusMark(node: Node): string {
+  if (node.priority === 'important') return '★'
+  if (node.status === 'done') return '✓'
+  if (node.status === 'later') return '↓'
+  return '·'
 }
 
 /** Leaving a mode should look like an action, not like a stray label. */
@@ -32,22 +33,25 @@ function BackIcon() {
 
 export function FocusPanel() {
   const store = useStore()
-  const state = useAppState()
   const { t } = useI18n()
-  const targets = useFocusList()
+  const focused = useFocusedNode()
+  const rows = useFocusSubtree()
   const inbox = useInbox()
-  const starred = useStarredInInbox()
-  const nodes = Object.values(state.nodes)
+
+  // `usePath` includes the focused question itself; the pinned row already shows
+  // its text, so only the ancestors are worth repeating as context.
+  const path = usePath(focused?.id ?? null)
+  const ancestorPath = path.split(' › ').slice(0, -1).join(' › ')
+  const subRows = rows.filter((row) => row.depth > 0)
 
   return (
     <section className="panel">
       <div className="panel-head">
         <span className="panel-title">{t('panel.focus')}</span>
-        <span className="count">{targets.length}</span>
         <span className="spacer" />
         {/* In the head, not at the foot of the list: this is how you get out of
             the mode, so it should be the first thing you can reach. */}
-        <button className="btn" onClick={store.toggleFocusMode}>
+        <button className="btn" onClick={store.clearFocus}>
           <BackIcon />
           {t('focus.leave')}
         </button>
@@ -56,7 +60,7 @@ export function FocusPanel() {
         <div className="focus-title">{t('focus.title')}</div>
         <div className="focus-sub">{t('focus.sub')}</div>
 
-        {targets.length === 0 && (
+        {!focused ? (
           <>
             <div className="empty" style={{ padding: '0 0 10px' }}>
               {t('empty.focus')}
@@ -65,39 +69,35 @@ export function FocusPanel() {
               {t('focus.how')}
             </div>
           </>
-        )}
+        ) : (
+          <>
+            {/* The focused question is pinned above its subtree, whatever its
+                status, so it is always the thing you are looking at. */}
+            <div className="focus-text">{focused.text}</div>
+            {ancestorPath && <div className="focus-path">{ancestorPath}</div>}
 
-        {/* The most common dead end: you star things while triaging the Inbox,
-            then switch to Focus and find it empty. Say why, and offer the way
-            back — Focus mode replaces the Inbox, so it is otherwise unreachable. */}
-        {starred.length > 0 && (
-          <div className="focus-callout">
-            <div>{t('focus.starred', { n: starred.length })}</div>
-            <button className="btn" onClick={store.toggleFocusMode}>
-              {t('focus.goInbox')}
-            </button>
-          </div>
-        )}
-
-        {targets.length > 0 && (
-          <ol className="focus-list">
-            {targets.map((node, index) => (
-              <li key={node.id}>
-                <button
-                  className={`focus-item ${state.selectedId === node.id ? 'selected' : ''}`}
-                  onClick={() => store.select(node.id)}
-                >
-                  <span className="focus-index">{index + 1}.</span>
-                  <span>
-                    <span className="focus-text">{node.text}</span>
-                    <span className="focus-path">
-                      {contextLabel(nodes, node, t('focus.thread'))}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
+            {subRows.length > 0 && (
+              <>
+                <div className="focus-title" style={{ marginTop: 18 }}>
+                  {t('focus.subquestions')}
+                </div>
+                <ul className="child-list">
+                  {subRows.map((row) => (
+                    <li key={row.node.id}>
+                      <button
+                        className={`child-row ${row.node.status}`}
+                        style={{ paddingLeft: row.depth * 12 }}
+                        onClick={() => store.select(row.node.id)}
+                      >
+                        <span className="mark">{statusMark(row.node)}</span>
+                        <span className="label">{row.node.text}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
         )}
 
         {inbox.length > 0 && (

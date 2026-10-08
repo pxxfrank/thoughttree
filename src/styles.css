@@ -297,8 +297,9 @@ textarea {
 .btn.icon:disabled {
   opacity: 0.55;
 }
-/* A toggled-on icon button (the filters, when they are not at their default). */
-.btn.icon.on {
+/* A button showing a toggled-on state — the filters when they are off their
+   default, and the Focus toggle when this question is the one being worked on. */
+.btn.on {
   background: var(--accent-soft);
   border-color: var(--accent-line);
   color: var(--accent-text);
@@ -658,54 +659,6 @@ textarea {
   color: var(--faint);
   font-size: 12px;
   margin-bottom: 22px;
-}
-
-/* Names the reason Focus looks empty and offers the way back to the Inbox. */
-.focus-callout {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 13px;
-  margin-bottom: 18px;
-  border: 1px solid var(--important-line);
-  background: var(--important-soft);
-  border-radius: var(--radius);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.focus-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.focus-item {
-  display: flex;
-  gap: 12px;
-  align-items: baseline;
-  padding: 9px 12px;
-  border-radius: var(--radius);
-  text-align: left;
-  width: 100%;
-}
-.focus-item:hover {
-  background: var(--panel-2);
-}
-.focus-item.selected {
-  background: var(--accent-soft);
-}
-
-.focus-index {
-  color: var(--important);
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  flex: none;
-  min-width: 18px;
 }
 
 .focus-text {

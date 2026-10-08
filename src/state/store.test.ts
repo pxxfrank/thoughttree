@@ -135,28 +135,29 @@ describe('inbox → tree', () => {
 })
 
 describe('triage', () => {
-  it('important open questions become the focus list', async () => {
+  it('focusing a question shows it and everything under it', async () => {
     const { store } = await ready()
     const a = store.addChild(null, 0, 'A') as string
     store.addChild(null, 1, 'B')
-    store.togglePriority(a)
 
-    expect(store.focusTargets().map((n) => n.id)).toEqual([a])
+    // No focus: the whole tree is visible.
     expect(store.visibleForest()).toHaveLength(2)
 
-    store.toggleFocusMode()
+    store.focusOn(a)
     expect(store.visibleForest().map((i) => i.node.id)).toEqual([a])
   })
 
-  it('keeps the ancestors of a focus target visible', async () => {
+  it('focusing a child keeps its ancestor chain and its subtree visible', async () => {
     const { store } = await ready()
     const root = store.addChild(null, 0, 'root') as string
     const child = store.addChild(root, 0, 'child') as string
-    store.togglePriority(child)
-    store.toggleFocusMode()
+    const leaf = store.addChild(child, 0, 'leaf') as string
+
+    store.focusOn(child)
     const forest = store.visibleForest()
     expect(forest.map((i) => i.node.id)).toEqual([root])
     expect(forest[0].children.map((i) => i.node.id)).toEqual([child])
+    expect(forest[0].children[0].children.map((i) => i.node.id)).toEqual([leaf])
   })
 
   it('done questions are hidden when the filter is off', async () => {
@@ -262,9 +263,9 @@ describe('undo / redo', () => {
     // function without a receiver. If the method is not bound, `this` is
     // undefined and the click silently throws — which is exactly how the Focus
     // button appeared dead.
-    const toggleFocusMode = store.toggleFocusMode
-    toggleFocusMode()
-    expect(store.getState().focusMode).toBe(true)
+    const setView = store.setView
+    setView('focus')
+    expect(store.getState().leftView).toBe('focus')
     const undo = store.undo
     undo()
     const dismissToast = store.dismissToast
@@ -321,11 +322,10 @@ describe('inbox is separate from the tree', () => {
     expect(store.visibleForest().map((i) => i.node.id)).toEqual([root])
   })
 
-  it('an important capture still waits in the inbox rather than joining focus', async () => {
+  it('an important capture still waits in the inbox rather than joining the tree', async () => {
     const { store } = await ready()
     const id = store.capture('important but unfiled') as string
     store.setPriority(id, 'important')
-    expect(store.focusTargets()).toHaveLength(0)
     expect(store.inbox().map((n) => n.id)).toEqual([id])
   })
 })
@@ -428,11 +428,11 @@ describe('search → reveal', () => {
 
     store.toggleCollapse(root)
     store.toggleCollapse(child)
-    store.toggleFocusMode()
+    store.focusOn(root)
     store.openSearch()
     expect(store.getState().nodes[root].collapsed).toBe(true)
     expect(store.getState().nodes[child].collapsed).toBe(true)
-    expect(store.getState().focusMode).toBe(true)
+    expect(store.getState().focusRoot).toBe(root)
 
     store.revealNode(leaf)
 
@@ -441,33 +441,124 @@ describe('search → reveal', () => {
     expect(state.nodes[child].collapsed).toBe(false)
     expect(state.selectedId).toBe(leaf)
     expect(state.searching).toBe(false)
-    expect(state.focusMode).toBe(false)
+    expect(state.focusRoot).toBeNull()
+    expect(state.leftView).toBe('inbox')
+  })
+})
+
+describe('focus on one question', () => {
+  it('focusOn pins the question, opens the view and reveals it', async () => {
+    const { store } = await ready()
+    const root = store.addChild(null, 0, 'root') as string
+    const child = store.addChild(root, 0, 'child') as string
+    store.toggleCollapse(root)
+
+    store.focusOn(child)
+
+    const state = store.getState()
+    expect(state.focusRoot).toBe(child)
+    expect(state.leftView).toBe('focus')
+    expect(state.selectedId).toBe(child)
+    expect(state.searching).toBe(false)
+    // The target is not left stuck under a collapsed ancestor.
+    expect(state.nodes[root].collapsed).toBe(false)
+  })
+
+  it('focusOn ignores an id that names no node', async () => {
+    const { store } = await ready()
+    store.focusOn('missing')
+    expect(store.getState().focusRoot).toBeNull()
+    expect(store.getState().leftView).toBe('inbox')
+  })
+
+  it('a non-starred sub-question stays visible in focus', async () => {
+    const { store } = await ready()
+    const parent = store.addChild(null, 0, 'parent') as string
+    const starred = store.addChild(parent, 0, 'starred') as string
+    const unstarred = store.addChild(parent, 1, 'unstarred') as string
+    store.setPriority(starred, 'important')
+
+    store.focusOn(parent)
+
+    // The bug this replaces: the non-starred child used to disappear.
+    const forest = store.visibleForest()
+    expect(forest.map((i) => i.node.id)).toEqual([parent])
+    expect(forest[0].children.map((i) => i.node.id)).toEqual([starred, unstarred])
+
+    // focusedNode / focusedRows back the Focus panel.
+    expect(store.focusedNode()?.id).toBe(parent)
+    expect(store.focusedRows().map((row) => [row.node.id, row.depth])).toEqual([
+      [parent, 0],
+      [starred, 1],
+      [unstarred, 1],
+    ])
+  })
+
+  it('clearFocus returns to the inbox', async () => {
+    const { store } = await ready()
+    const a = store.addChild(null, 0, 'A') as string
+    store.focusOn(a)
+
+    store.clearFocus()
+
+    expect(store.getState().focusRoot).toBeNull()
+    expect(store.getState().leftView).toBe('inbox')
+    expect(store.visibleForest().map((i) => i.node.id)).toEqual([a])
+  })
+
+  it('removing the focused question clears the focus', async () => {
+    const { store } = await ready()
+    const a = store.addChild(null, 0, 'A') as string
+    const b = store.addChild(null, 1, 'B') as string
+    store.focusOn(a)
+
+    store.remove([a])
+
+    expect(store.getState().focusRoot).toBeNull()
+    expect(store.getState().leftView).toBe('inbox')
+    expect(store.visibleForest().map((i) => i.node.id)).toEqual([b])
+  })
+
+  it('focusSelection toggles the selection on and off', async () => {
+    const { store } = await ready()
+    const a = store.addChild(null, 0, 'A') as string
+    store.select(a)
+
+    store.focusSelection()
+    expect(store.getState().focusRoot).toBe(a)
+    expect(store.getState().leftView).toBe('focus')
+
+    store.focusSelection()
+    expect(store.getState().focusRoot).toBeNull()
+    expect(store.getState().leftView).toBe('inbox')
+  })
+
+  it('focusSelection with nothing selected opens the empty focus view', async () => {
+    const { store } = await ready()
+    store.select(null)
+
+    store.focusSelection()
+
+    expect(store.getState().focusRoot).toBeNull()
+    expect(store.getState().leftView).toBe('focus')
   })
 })
 
 describe('left column view', () => {
-  it('setView focuses the tree only for the focus view', async () => {
+  it('setView changes the view without touching the tree filter', async () => {
     const { store } = await ready()
+    store.addChild(null, 0, 'A')
+    store.addChild(null, 1, 'B')
+
     store.setView('focus')
     expect(store.getState().leftView).toBe('focus')
-    expect(store.getState().focusMode).toBe(true)
+    // Focus view with no pinned question does not filter the tree (D035).
+    expect(store.getState().focusRoot).toBeNull()
+    expect(store.visibleForest()).toHaveLength(2)
 
     store.setView('review')
     expect(store.getState().leftView).toBe('review')
-    expect(store.getState().focusMode).toBe(false)
-  })
-
-  it('toggleFocusMode moves from the inbox to focus and back', async () => {
-    const { store } = await ready()
-    expect(store.getState().leftView).toBe('inbox')
-
-    store.toggleFocusMode()
-    expect(store.getState().leftView).toBe('focus')
-    expect(store.getState().focusMode).toBe(true)
-
-    store.toggleFocusMode()
-    expect(store.getState().leftView).toBe('inbox')
-    expect(store.getState().focusMode).toBe(false)
+    expect(store.getState().focusRoot).toBeNull()
   })
 
   it('reshuffle changes the session seed', async () => {

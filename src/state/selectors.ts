@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { makeVisibility, filterTree, inboxOrder, focusList } from '../domain/focus'
+import { makeVisibility, filterTree, inboxOrder, focusScope } from '../domain/focus'
 import {
   unexplainedNodeIds,
   edgeForNode,
@@ -8,7 +8,7 @@ import {
   relatedNodeIds,
 } from '../domain/relations'
 import { reviewGroups, type ReviewGroup } from '../domain/review'
-import { buildForest, flatten, pathText } from '../domain/tree'
+import { buildForest, flatten, pathText, subtreeRows } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
 import type { Edge, Node } from '../domain/types'
 import { useAppState } from './context'
@@ -25,9 +25,13 @@ export function useUnexplained(): Set<string> {
 export function useVisibleForest(): { forest: TreeItem[]; flat: TreeItem[] } {
   const state = useAppState()
   const unexplained = useUnexplained()
+  const focus = useMemo(
+    () => focusScope(Object.values(state.nodes), state.focusRoot),
+    [state.nodes, state.focusRoot],
+  )
   return useMemo(() => {
     const keep = makeVisibility({
-      focusMode: state.focusMode,
+      focus,
       showLater: state.showLater,
       showDone: state.showDone,
       showArchived: state.showArchived,
@@ -38,7 +42,7 @@ export function useVisibleForest(): { forest: TreeItem[]; flat: TreeItem[] } {
     return { forest, flat: flatten(forest, (node) => node.collapsed) }
   }, [
     state.nodes,
-    state.focusMode,
+    focus,
     state.showLater,
     state.showDone,
     state.showArchived,
@@ -52,23 +56,21 @@ export function useInbox() {
   return useMemo(() => inboxOrder(Object.values(nodes)), [nodes])
 }
 
-export function useFocusList() {
-  const { nodes } = useAppState()
-  return useMemo(() => focusList(Object.values(nodes)), [nodes])
+/** The one question Focus is pinned to, or null. */
+export function useFocusedNode(): Node | null {
+  const state = useAppState()
+  return useMemo(
+    () => (state.focusRoot ? state.nodes[state.focusRoot] ?? null : null),
+    [state.nodes, state.focusRoot],
+  )
 }
 
-/**
- * Starred questions that are still unfiled. Focus mode only looks at the tree,
- * so these are the usual reason it looks empty right after you start using it.
- */
-export function useStarredInInbox() {
-  const { nodes } = useAppState()
+/** The focused question and its descendants as a flat, depth-annotated outline. */
+export function useFocusSubtree(): { node: Node; depth: number }[] {
+  const state = useAppState()
   return useMemo(
-    () =>
-      inboxOrder(Object.values(nodes)).filter(
-        (node) => node.priority === 'important' && node.status === 'open',
-      ),
-    [nodes],
+    () => (state.focusRoot ? subtreeRows(Object.values(state.nodes), state.focusRoot) : []),
+    [state.nodes, state.focusRoot],
   )
 }
 

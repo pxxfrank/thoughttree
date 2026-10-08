@@ -48,7 +48,7 @@ export function useKeyboard(): void {
       }
       if (mod && event.shiftKey && key === 'f') {
         event.preventDefault()
-        store.toggleFocusMode()
+        store.focusSelection()
         return
       }
       // Ctrl+P opens search from anywhere, including while typing. It must be

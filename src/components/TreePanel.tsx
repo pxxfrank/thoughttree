@@ -336,7 +336,7 @@ export function TreePanel() {
       >
         {forest.length === 0 && !state.creating ? (
           <div className="empty">
-            {state.focusMode ? t('empty.treeFiltered') : t('empty.tree')}
+            {state.focusRoot !== null ? t('empty.treeFiltered') : t('empty.tree')}
             <br />
             {t('empty.treeCapture')}
             <br />

@@ -71,6 +71,30 @@ export function flatten(forest: TreeItem[], skipChildrenOf: (node: Node) => bool
   return out
 }
 
+/**
+ * Depth-first display order of a subtree, as flat rows with a depth relative to
+ * `rootId` (the root is 0, its children 1). Returns `[]` when `rootId` is
+ * missing, so a dangling focus root renders as nothing rather than throwing.
+ */
+export function subtreeRows(nodes: Node[], rootId: string): { node: Node; depth: number }[] {
+  const index = indexChildren(nodes)
+  const root = nodes.find((n) => n.id === rootId)
+  if (!root) return []
+  const out: { node: Node; depth: number }[] = []
+  const seen = new Set<string>([rootId])
+  const walk = (node: Node, depth: number): void => {
+    out.push({ node, depth })
+    for (const child of index.get(node.id) ?? []) {
+      // Guards against a corrupted parent cycle causing infinite recursion.
+      if (seen.has(child.id)) continue
+      seen.add(child.id)
+      walk(child, depth + 1)
+    }
+  }
+  walk(root, 0)
+  return out
+}
+
 export function descendantIds(nodes: Node[], rootId: string): string[] {
   const index = indexChildren(nodes)
   const out: string[] = []

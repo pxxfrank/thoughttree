@@ -39,13 +39,13 @@ export function CaptureBar() {
           }}
           data-capture-bar
         />
+        <span className="capture-hint">
+          {t('capture.hint', { shortcut: state.shortcut || t('capture.noShortcut') })}
+        </span>
         <button className="btn primary" onClick={() => void submit()} disabled={!text.trim()}>
           {t('capture.button')}
         </button>
       </div>
-      <span className="capture-hint">
-        {t('capture.hint', { shortcut: state.shortcut || t('capture.noShortcut') })}
-      </span>
     </div>
   )
 }

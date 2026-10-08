@@ -8,7 +8,7 @@ import {
   relatedNodeIds,
 } from '../domain/relations'
 import { reviewGroups, type ReviewGroup } from '../domain/review'
-import { buildForest, flatten, pathText, subtreeRows } from '../domain/tree'
+import { buildForest, flatten, pathText, subtreeForest, subtreeRows } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
 import type { Edge, Node } from '../domain/types'
 import { useAppState } from './context'
@@ -38,7 +38,10 @@ export function useVisibleForest(): { forest: TreeItem[]; flat: TreeItem[] } {
       onlyUnexplained: state.onlyUnexplained,
       unexplained,
     })
-    const forest = filterTree(buildForest(Object.values(state.nodes)), keep)
+    const all = buildForest(Object.values(state.nodes))
+    // Focused: re-root at the focused question so what is on screen is exactly
+    // that question and its sub-questions — no parents rescued back in.
+    const forest = filterTree(focus ? subtreeForest(all, focus.root) : all, keep)
     return { forest, flat: flatten(forest, (node) => node.collapsed) }
   }, [
     state.nodes,

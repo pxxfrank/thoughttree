@@ -139,7 +139,7 @@ export function Header() {
         <div className="seg">
           <button
             className={state.leftView === 'focus' ? 'on' : ''}
-            onClick={() => store.setView('focus')}
+            onClick={store.openFocus}
             title="Ctrl+Shift+F"
           >
             ◉ {t('nav.focus')}

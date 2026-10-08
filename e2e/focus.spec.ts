@@ -49,3 +49,43 @@ test('focus pins one question and keeps its sub-questions in view', async ({ pag
   await page.locator('.header button[aria-label="Redo"]').click()
   await expect(page.locator('.row .row-text', { hasText: 'Plain child' })).toBeVisible()
 })
+
+// Both entries into Focus — the header tab and the detail panel button — mean
+// "pin this question", and the screen should then hold that question and its
+// sub-questions and nothing else. Two things used to break that: the header tab
+// only switched views without ever setting a target, so the tree stayed whole;
+// and `filterTree` rescues the ancestors of whatever it keeps, so the focused
+// question's *parents* came along with it.
+test('focusing a question shows it and its sub-questions, and nothing else', async ({ page }) => {
+  await openApp(page)
+
+  await seedTree(page, [
+    { text: 'Grandparent', parent: null },
+    { text: 'Parent', parent: 0 },
+    { text: 'Child', parent: 1 },
+    { text: 'Grandchild', parent: 2 },
+    { text: 'Sibling', parent: 1 },
+    { text: 'Other root', parent: null },
+  ])
+
+  // Exact text: `hasText: 'Child'` would also match "Grandchild".
+  const rowText = (text: string) => page.locator('.row-text', { hasText: new RegExp(`^${text}$`) })
+  // Sorted, because the claim here is about *which* questions are on screen —
+  // no ancestors, no other branches — not about sibling order, which depends on
+  // where `seedTree` inserted them.
+  const visible = async () => [...(await page.locator('.row .row-text').allInnerTexts())].sort()
+
+  // The way a reader does it: select the question, then press Focus.
+  await rowText('Child').click()
+  await page.locator('.seg button', { hasText: 'Focus' }).click()
+
+  expect(await visible()).toEqual(['Child', 'Grandchild'])
+
+  // Leaving, then entering Focus the other way, must land in the same place.
+  await page.locator('.panel-head .btn', { hasText: 'Leave focus' }).click()
+  await rowText('Parent').click()
+  await page.locator('.panel-head .btn', { hasText: 'Focus on this question' }).click()
+
+  // Sibling is a child of Parent, so it belongs; Grandparent and Other root do not.
+  expect(await visible()).toEqual(['Child', 'Grandchild', 'Parent', 'Sibling'])
+})

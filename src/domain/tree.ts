@@ -58,6 +58,33 @@ export function buildForest(nodes: Node[]): TreeItem[] {
   return walk(null, 0)
 }
 
+/** A copy of `item` and its subtree, with `depth` as the new depth of the root. */
+function rebase(item: TreeItem, depth: number): TreeItem {
+  return {
+    node: item.node,
+    depth,
+    children: item.children.map((child) => rebase(child, depth + 1)),
+  }
+}
+
+/**
+ * The subtree rooted at `rootId` as a forest of its own, depths rebased so the
+ * root sits at depth 0. `[]` when there is no such node.
+ *
+ * Focus mode re-roots instead of merely filtering, because `filterTree` rescues
+ * the *ancestors* of anything it keeps — so filtering alone would show the
+ * focused question together with its parents, which is not what focusing on it
+ * means.
+ */
+export function subtreeForest(items: TreeItem[], rootId: string): TreeItem[] {
+  for (const item of items) {
+    if (item.node.id === rootId) return [rebase(item, 0)]
+    const found = subtreeForest(item.children, rootId)
+    if (found.length > 0) return found
+  }
+  return []
+}
+
 /** Depth-first display order, skipping the children of collapsed nodes. */
 export function flatten(forest: TreeItem[], skipChildrenOf: (node: Node) => boolean): TreeItem[] {
   const out: TreeItem[] = []

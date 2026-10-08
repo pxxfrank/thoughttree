@@ -147,7 +147,7 @@ describe('triage', () => {
     expect(store.visibleForest().map((i) => i.node.id)).toEqual([a])
   })
 
-  it('focusing a child keeps its ancestor chain and its subtree visible', async () => {
+  it('focusing a child shows that child and what is under it — not its parents', async () => {
     const { store } = await ready()
     const root = store.addChild(null, 0, 'root') as string
     const child = store.addChild(root, 0, 'child') as string
@@ -155,9 +155,12 @@ describe('triage', () => {
 
     store.focusOn(child)
     const forest = store.visibleForest()
-    expect(forest.map((i) => i.node.id)).toEqual([root])
-    expect(forest[0].children.map((i) => i.node.id)).toEqual([child])
-    expect(forest[0].children[0].children.map((i) => i.node.id)).toEqual([leaf])
+    // The parent is deliberately absent. `filterTree` rescues the ancestors of
+    // whatever it keeps, so filtering alone would drag `root` back in and the
+    // screen would show more than the question being focused on.
+    expect(forest.map((i) => i.node.id)).toEqual([child])
+    expect(forest[0].depth).toBe(0)
+    expect(forest[0].children.map((i) => i.node.id)).toEqual([leaf])
   })
 
   it('done questions are hidden when the filter is off', async () => {

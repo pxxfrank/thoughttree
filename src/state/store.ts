@@ -23,7 +23,7 @@ import {
   type MutationContext,
 } from '../domain/mutations'
 import { edgeForNode, linkedNodeIds, linksForNode, unexplainedNodeIds } from '../domain/relations'
-import { buildForest, indexChildren, orderWithMany, subtreeRows } from '../domain/tree'
+import { buildForest, indexChildren, orderWithMany, subtreeForest, subtreeRows } from '../domain/tree'
 import type { TreeItem } from '../domain/tree'
 import type { Changes, Edge, Node, Priority, RelationType, Snapshot, Status } from '../domain/types'
 import { detectLocale, type Locale } from '../i18n/strings'
@@ -692,7 +692,9 @@ export class AppStore {
 
   visibleForest(): TreeItem[] {
     const keep = this.visibility()
-    return filterTree(buildForest(this.allNodes()), keep)
+    const all = buildForest(this.allNodes())
+    const focus = this.focusScope()
+    return filterTree(focus ? subtreeForest(all, focus.root) : all, keep)
   }
 
   inbox(): Node[] {
@@ -702,6 +704,19 @@ export class AppStore {
   /** The focused question and every id under it, or null when there is none. */
   private focusScope(): { root: string; ids: ReadonlySet<string> } | null {
     return focusScope(this.allNodes(), this.state.focusRoot)
+  }
+
+  /**
+   * The Focus tab. It pins the selected question — "select something, then
+   * press Focus", which is the only reading that makes the button do what its
+   * label says. With nothing selected it just opens the view and explains.
+   *
+   * It never *leaves* focus: the shortcut toggles, a tab should not.
+   */
+  openFocus(): void {
+    const id = this.state.selectedId
+    if (id && this.state.nodes[id]) this.focusOn(id)
+    else this.setView('focus')
   }
 
   /** The one question Focus is pinned to, or null. */

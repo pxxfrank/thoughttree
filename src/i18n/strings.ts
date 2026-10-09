@@ -54,7 +54,7 @@ const en: Dict = {
   'empty.tree': 'Your tree is empty.',
   'empty.treeFiltered': 'No important open questions right now.',
   'empty.treeHint': 'Drag a thought from the Inbox into this tree to start it.',
-  'empty.treeCapture': 'Press Ctrl+Shift+C or click the orb to capture a thought.',
+  'empty.treeCapture': 'Press Ctrl+Shift+C to capture a thought.',
   'empty.inbox': 'Inbox is empty. Every captured thought lands here, unfiled and unfiltered.',
   'empty.inboxHint': 'Drag an item into the tree — or select several and file them together.',
   'empty.detail':
@@ -227,7 +227,7 @@ const en: Dict = {
   'toast.shortcutCleared': 'Quick capture shortcut disabled',
   'toast.shortcutFailed': 'Could not set shortcut: {error}',
   'toast.shortcutConflict':
-    'Global shortcut “{accel}” is taken by another program, so quick capture cannot be triggered from outside the app. Choose a different one in the ? Keys dialog. You can still capture from the orb.',
+    'Global shortcut “{accel}” is taken by another program, so quick capture cannot be triggered from outside the app. Choose a different one in the ? Keys dialog. You can still capture from the tray icon.',
   'toast.saveFailed': 'Could not save — change reverted ({error})',
   'toast.domainError': 'Could not do that: {error}',
 
@@ -236,7 +236,6 @@ const en: Dict = {
   'error.importFormat': 'That file is not a ThoughtTree export.',
   'error.invalidUrl': 'That link is not a web address.',
   'error.openUrlFailed': 'Could not open that link.',
-  'toast.orbPosition': 'Orb position saved',
 
   'app.opening': 'Opening your local database…',
   'app.dbFailed': 'ThoughtTree could not open its local database.',
@@ -307,7 +306,7 @@ const zh: Dict = {
   'empty.tree': '研究树还是空的。',
   'empty.treeFiltered': '目前没有「重要且未完成」的问题。',
   'empty.treeHint': '把收集箱里的想法拖进这棵树，就开始了。',
-  'empty.treeCapture': '按 Ctrl+Shift+C 或点击悬浮球记录想法。',
+  'empty.treeCapture': '按 Ctrl+Shift+C 记录想法。',
   'empty.inbox': '收集箱是空的。所有随手记下的想法都先落在这里，不分类、不过滤。',
   'empty.inboxHint': '把条目拖进研究树，或者多选后一起归档。',
   'empty.detail': '选中一个问题，就能看到它的状态、它为什么归属在这里，以及你的笔记。',
@@ -472,7 +471,7 @@ const zh: Dict = {
   'toast.shortcutCleared': '已禁用快速记录快捷键',
   'toast.shortcutFailed': '设置快捷键失败：{error}',
   'toast.shortcutConflict':
-    '全局快捷键「{accel}」已被其他程序占用，无法从应用外触发快速记录。请在「? 快捷键」对话框里换一个组合键。你仍然可以点击悬浮球记录。',
+    '全局快捷键「{accel}」已被其他程序占用，无法从应用外触发快速记录。请在「? 快捷键」对话框里换一个组合键。你仍然可以从任务栏托盘图标记录。',
   'toast.saveFailed': '保存失败，改动已回滚（{error}）',
   'toast.domainError': '无法完成该操作：{error}',
 
@@ -481,7 +480,6 @@ const zh: Dict = {
   'error.importFormat': '该文件不是 ThoughtTree 导出文件。',
   'error.invalidUrl': '这不是一个网页地址。',
   'error.openUrlFailed': '无法打开该链接。',
-  'toast.orbPosition': '悬浮球位置已保存',
 
   'app.opening': '正在打开本地数据库…',
   'app.dbFailed': 'ThoughtTree 无法打开本地数据库。',

@@ -1,7 +1,7 @@
 //! System tray entry point.
 //!
 //! ThoughtTree keeps running after the main window is closed, so the tray is the
-//! discoverable way back in: the orb is for capturing, the tray is for managing.
+//! discoverable way back in — to open the app, or to fire a quick capture.
 
 use crate::windows::{open_capture, show_main};
 use tauri::{

@@ -1,11 +1,11 @@
 //! Background sampler for the foreground window that is *not* ours.
 //!
-//! At the instant a capture fires, our own capture/orb window is the foreground
+//! At the instant a capture fires, our own capture window is the foreground
 //! window, so asking Win32 on demand would only ever return ThoughtTree. A small
 //! thread instead samples the foreground window continuously and remembers the
 //! last one that belonged to another process — the context the thought came
 //! from. `capture_source_context` then just hands back that snapshot, which works
-//! the same for the orb, the global shortcut and the in-app capture bar.
+//! the same for the global shortcut and the in-app capture bar.
 
 use crate::windows::CaptureSource;
 use std::sync::Mutex;
@@ -62,7 +62,7 @@ pub fn start(_app: &AppHandle) {}
 /// True when `hwnd` is one of the windows this app owns.
 #[cfg(target_os = "windows")]
 fn is_ours(app: &AppHandle, hwnd: *mut std::ffi::c_void) -> bool {
-    for label in ["main", "capture", "orb"] {
+    for label in ["main", "capture"] {
         if let Some(win) = app.get_webview_window(label) {
             if let Ok(handle) = win.hwnd() {
                 if handle.0 == hwnd {

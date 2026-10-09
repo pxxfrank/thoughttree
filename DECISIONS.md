@@ -224,6 +224,8 @@ window can always be recovered regardless.
 
 ## D014 — A system tray icon, despite the orb
 
+> *Amended by D037: the orb is removed; the tray remains.*
+
 **Decision**: Ship a tray icon with *Open ThoughtTree*, *Quick capture* and
 *Quit*.
 
@@ -250,6 +252,8 @@ Chinese, Japanese and Korean users this would have made quick capture unusable.
 ---
 
 ## D016 — The main and capture windows are created in `setup`, not in the config
+
+> *Amended by D037: the orb is removed. The rule stands — the database is managed before any window is built.*
 
 **Decision**: `tauri.conf.json` declares only the orb. The main window and the
 quick-capture window are built with `WebviewWindowBuilder` inside the `setup`
@@ -412,6 +416,8 @@ what "flomo" means visually.
 
 ## D025 — The orb glyph is smaller; its window is not
 
+> *Superseded by D037: the orb is removed.*
+
 **Decision**: Keep the orb window at 64x64 and shrink the glyph inside it from
 58% to 44%. Keep all three windows created in `setup` rather than in the config.
 
@@ -438,6 +444,8 @@ broken. See `PROJECT_STATE.md` → Known Issues.
 ---
 
 ## D026 — The default global shortcut is not Alt+Space
+
+> *Amended by D037: the orb is removed; the tray is now the fallback when the accelerator is taken.*
 
 **Decision**: The default quick-capture shortcut becomes `Ctrl+Shift+Space`.
 
@@ -787,6 +795,48 @@ of them was a bug; all of them were noise the user had to read past.
 is discovered later than before; and the add-link action stands alone, with no
 field label above it, for a question that has no links yet. Both were chosen
 deliberately — a narrower box and a plaque-free panel were the point.
+
+**Date**: 2026-10-09
+
+---
+
+## D037 — The floating orb is removed
+
+**Decision**: Remove the floating orb. Its window, the `OrbState` runtime, its
+geometry (`orb_snap` / `orb_peek` / `orb_expand` / `restore_orb`), the three
+`orb_*` commands, the `src/orb/` front end, `orb.html` and its Vite input, and
+the `orb_x` / `orb_y` / `orb_edge` settings rows are all gone. The app now
+creates exactly two windows: `main` and `capture`.
+
+**Reason**: an explicit product call by the owner. The orb was the app's only
+always-visible surface and its most conspicuous piece of chrome; the capture
+loop it served is already covered by the global shortcut, the in-app
+`Ctrl+Shift+C` bar and the tray's *Quick capture* item, so removing it costs no
+capability that another entry point does not already provide.
+
+**What changes for the user**:
+- There is no always-visible launcher. Closing the main window hides it, and the
+  app is then reachable only from the tray — which was always the documented way
+  back (D014), but used to be one of two.
+- When the global shortcut is taken by another program, the out-of-app fallback
+  is now the tray's *Quick capture* item; the conflict toast says so.
+- Brief §24 items 3 ("the orb runs") and 4 ("orb → quick capture") no longer
+  apply. Items 5 (the global shortcut) and 6 (the capture bar / the tray) carry
+  the capture entry points.
+
+**Unchanged**: `setup` still manages the database *before* building a window
+(D016), and `tauri.conf.json` still declares no windows, so a window is built
+only once the database is available. The orb ordering example that motivated
+that rule is gone; the rule itself stands.
+
+**Supersedes / amends**: supersedes **D025** (the orb's window and glyph
+sizing). Amends **D010** (the chrome strip, written for the orb), **D014** (the
+tray "despite the orb"), **D016** (the orb was the first window created),
+**D024** (the orb shared the theme over `localStorage`) and **D026** (which
+named the orb as the fallback when the accelerator is taken).
+
+**Trade-off**: an always-visible, zero-shortcut capture entry is genuinely lost.
+That is the point of the change, not an oversight.
 
 **Date**: 2026-10-09
 

@@ -2,8 +2,8 @@
 //!
 //! Tauri's `decorations: false` still leaves `WS_CAPTION | WS_SYSMENU` on the
 //! window, and Windows then refuses to make it narrower than `SM_CXMINTRACK`
-//! (136px on a default desktop). That turned the 64x64 floating orb into a
-//! 136x64 slab. Removing those style bits lets the orb be a real circle.
+//! (136px on a default desktop). Removing those style bits lets a borderless
+//! window be exactly the size it was asked to be.
 //!
 //! Tauri re-applies the window attributes when a window is shown, so the strip
 //! has to happen *after* `show()` — otherwise the caption comes straight back.

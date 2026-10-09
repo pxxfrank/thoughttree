@@ -12,7 +12,8 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 
 - [ ] **Persist undo history** — undo currently lives in memory and is per
   window, so it is lost on restart and does not cover a capture made from the
-  orb. Decide whether that is acceptable or move history into SQLite.
+  quick-capture window. Decide whether that is acceptable or move history into
+  SQLite.
 - [ ] **Multi-select drag in the tree** — the Inbox supports multi-select and
   bulk filing; the tree only drags one node at a time. (`placeMutation` already
   handles a list of ids.)
@@ -26,7 +27,6 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 - [ ] Collapse-all / expand-all.
 - [ ] Per-node "open questions" count on the tree row.
 - [ ] Drag a node from the tree back into the Inbox.
-- [ ] Settings: choose the orb's default edge, disable auto-peek.
 - [ ] Remember window size/position for the main window.
 - [ ] Show the reason on the tree row as a tooltip.
 - [ ] Keyboard: multi-select with Shift+Arrow, range delete.
@@ -73,6 +73,14 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 - [x] The Inbox's drag hint was permanent; it now shows only in the empty state.
 - [x] The detail panel's 关联 block was rendered for every question, even with
   no links; it now appears only when there is one, leaving just the add action.
+
+## Done — the floating orb is removed (D037)
+
+- [x] The orb window, its geometry (snap / peek / expand / restore), the three
+  `orb_*` commands, `src/orb/`, `orb.html` and its Vite input are gone. The app
+  creates exactly two windows: `main` and `capture`.
+- [x] Capture is reached through the global shortcut, the in-app `Ctrl+Shift+C`
+  bar, or the tray's *Quick capture* item — the orb's three jobs.
 
 ## Explicitly out of scope (see §17 of the brief)
 

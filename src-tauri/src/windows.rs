@@ -2,10 +2,9 @@ use crate::db;
 use crate::platform;
 use crate::AppDb;
 use serde::Serialize;
-use std::sync::Mutex;
 use tauri::{
-    App, AppHandle, Manager, Monitor, PhysicalPosition, PhysicalSize, State, WebviewUrl,
-    WebviewWindow, WebviewWindowBuilder,
+    App, AppHandle, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindow,
+    WebviewWindowBuilder,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
@@ -19,20 +18,6 @@ pub const DEFAULT_SHORTCUT: &str = "Ctrl+Shift+Space";
 /// and is silently dead. An earlier build defaulted to it and a *Reset* button
 /// wrote it into settings; recognising it here lets us heal that stale value.
 const DEAD_SHORTCUT: &str = "Alt+Space";
-
-const ORB_MARGIN: i32 = 8;
-const ORB_PEEK_VISIBLE: i32 = 10;
-const ORB_SIZE: f64 = 64.0;
-
-#[derive(Default)]
-pub struct OrbRuntime {
-    pub edge: Option<String>,
-    pub anchor: Option<(i32, i32)>,
-    pub peeking: bool,
-}
-
-#[derive(Default)]
-pub struct OrbState(pub Mutex<OrbRuntime>);
 
 #[derive(Serialize, Default, Clone)]
 pub struct CaptureSource {
@@ -49,22 +34,6 @@ pub struct CaptureSource {
 /// `tauri.conf.json`, because config windows are created *before* the setup hook
 /// runs. A packaged front end boots from embedded assets and calls `db_load`
 /// within milliseconds, so the database has to be managed first.
-
-pub fn create_orb_window(app: &App) -> tauri::Result<()> {
-    let window = WebviewWindowBuilder::new(app, "orb", WebviewUrl::App("orb.html".into()))
-        .title("ThoughtTree Orb")
-        .inner_size(ORB_SIZE, ORB_SIZE)
-        .transparent(true)
-        .decorations(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .resizable(false)
-        .shadow(false)
-        .visible(false)
-        .build()?;
-    fit_orb(&window);
-    Ok(())
-}
 
 pub fn create_main_window(app: &App) -> tauri::Result<()> {
     WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
@@ -211,173 +180,6 @@ pub fn watch_main_window(app: AppHandle) {
     });
 }
 
-/// --- Floating orb ---------------------------------------------------------
-
-fn orb_window(app: &AppHandle) -> Option<WebviewWindow> {
-    app.get_webview_window("orb")
-}
-
-fn monitor_for(win: &WebviewWindow) -> Option<Monitor> {
-    win.current_monitor()
-        .ok()
-        .flatten()
-        .or_else(|| win.primary_monitor().ok().flatten())
-}
-
-fn persist_orb(app: &AppHandle, x: i32, y: i32, edge: &str) {
-    let db = app.state::<AppDb>();
-    let _ = db.with(|conn| {
-        let _ = db::set_setting(conn, "orb_x", &x.to_string());
-        let _ = db::set_setting(conn, "orb_y", &y.to_string());
-        let _ = db::set_setting(conn, "orb_edge", edge);
-        Ok(())
-    });
-}
-
-/// The orb must be a true circle, so drop the caption styles Windows uses to
-/// enforce a minimum window width, then re-apply the exact size.
-fn fit_orb(win: &WebviewWindow) {
-    platform::strip_chrome(win);
-    let scale = win.scale_factor().unwrap_or(1.0);
-    let side = (ORB_SIZE * scale).round() as u32;
-    let _ = win.set_size(PhysicalSize::new(side, side));
-}
-
-/// Snaps the orb to the nearest vertical screen edge and remembers the result.
-pub fn orb_snap(app: &AppHandle) -> Result<(), String> {
-    let win = orb_window(app).ok_or("orb window not found")?;
-    let pos = win.outer_position().map_err(|e| e.to_string())?;
-    let size = win.outer_size().map_err(|e| e.to_string())?;
-    let monitor = monitor_for(&win).ok_or("no monitor")?;
-
-    let mpos = monitor.position();
-    let msize = monitor.size();
-    let center_x = pos.x + size.width as i32 / 2;
-    let monitor_center = mpos.x + msize.width as i32 / 2;
-    let on_left = center_x < monitor_center;
-
-    let x = if on_left {
-        mpos.x + ORB_MARGIN
-    } else {
-        mpos.x + msize.width as i32 - size.width as i32 - ORB_MARGIN
-    };
-    let min_y = mpos.y + ORB_MARGIN;
-    let max_y = mpos.y + msize.height as i32 - size.height as i32 - ORB_MARGIN;
-    let y = pos.y.clamp(min_y, max_y.max(min_y));
-
-    win.set_position(PhysicalPosition::new(x, y))
-        .map_err(|e| e.to_string())?;
-
-    let edge = if on_left { "left" } else { "right" };
-    {
-        let state = app.state::<OrbState>();
-        let mut rt = state.0.lock().map_err(|e| e.to_string())?;
-        rt.edge = Some(edge.to_string());
-        rt.anchor = Some((x, y));
-        rt.peeking = false;
-    }
-    persist_orb(app, x, y, edge);
-    Ok(())
-}
-
-/// Slides the orb mostly off-screen so it stops covering other windows.
-pub fn orb_peek(app: &AppHandle) -> Result<(), String> {
-    let win = orb_window(app).ok_or("orb window not found")?;
-    let state = app.state::<OrbState>();
-    let (anchor, edge, already) = {
-        let rt = state.0.lock().map_err(|e| e.to_string())?;
-        (rt.anchor, rt.edge.clone(), rt.peeking)
-    };
-    if already {
-        return Ok(());
-    }
-    let Some((ax, ay)) = anchor else {
-        return Ok(());
-    };
-    let width = win.outer_size().map_err(|e| e.to_string())?.width as i32;
-    let peek = (ORB_PEEK_VISIBLE as f64 * win.scale_factor().unwrap_or(1.0)) as i32;
-    let x = match edge.as_deref() {
-        Some("left") => ax - (width - peek),
-        _ => ax + (width - peek),
-    };
-    win.set_position(PhysicalPosition::new(x, ay))
-        .map_err(|e| e.to_string())?;
-    let mut rt = state.0.lock().map_err(|e| e.to_string())?;
-    rt.peeking = true;
-    Ok(())
-}
-
-pub fn orb_expand(app: &AppHandle) -> Result<(), String> {
-    let win = orb_window(app).ok_or("orb window not found")?;
-    let state = app.state::<OrbState>();
-    let (anchor, peeking) = {
-        let rt = state.0.lock().map_err(|e| e.to_string())?;
-        (rt.anchor, rt.peeking)
-    };
-    if !peeking {
-        return Ok(());
-    }
-    if let Some((ax, ay)) = anchor {
-        win.set_position(PhysicalPosition::new(ax, ay))
-            .map_err(|e| e.to_string())?;
-    }
-    let mut rt = state.0.lock().map_err(|e| e.to_string())?;
-    rt.peeking = false;
-    Ok(())
-}
-
-/// Restores the orb on launch: either the remembered anchor or the right edge.
-pub fn restore_orb(app: &AppHandle) {
-    let Some(win) = orb_window(app) else {
-        return;
-    };
-    let saved = {
-        let db = app.state::<AppDb>();
-        db.with(|conn| {
-            let x = db::get_setting(conn, "orb_x").ok().flatten();
-            let y = db::get_setting(conn, "orb_y").ok().flatten();
-            let edge = db::get_setting(conn, "orb_edge").ok().flatten();
-            Ok(match (x, y, edge) {
-                (Some(x), Some(y), Some(edge)) => x
-                    .parse::<i32>()
-                    .ok()
-                    .zip(y.parse::<i32>().ok())
-                    .map(|(x, y)| (x, y, edge)),
-                _ => None,
-            })
-        })
-        .unwrap_or(None)
-    };
-
-    match saved {
-        Some((x, y, edge)) => {
-            let _ = win.set_position(PhysicalPosition::new(x, y));
-            if let Ok(mut rt) = app.state::<OrbState>().0.lock() {
-                rt.anchor = Some((x, y));
-                rt.edge = Some(edge);
-                rt.peeking = false;
-            }
-        }
-        None => {
-            // First run: park it against the right edge, about a third down.
-            if let Some(monitor) = monitor_for(&win) {
-                let mpos = monitor.position();
-                let msize = monitor.size();
-                let x = mpos.x + msize.width as i32 - (ORB_SIZE as i32) - ORB_MARGIN;
-                let y = mpos.y + (msize.height as f64 * 0.32) as i32;
-                let _ = win.set_position(PhysicalPosition::new(x, y));
-            }
-        }
-    }
-
-    let _ = win.show();
-    let _ = win.set_always_on_top(true);
-    // Showing applies Tauri's window attributes, which put the caption styles
-    // back and re-clamp the width — so fitting has to be the last word.
-    fit_orb(&win);
-    let _ = orb_snap(app);
-}
-
 /// --- Global shortcut ------------------------------------------------------
 pub fn current_shortcut_accel(app: &AppHandle) -> String {
     let db = app.state::<AppDb>();
@@ -465,21 +267,6 @@ pub fn hide_main_window(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
     app.exit(0);
-}
-
-#[tauri::command]
-pub fn orb_snap_window(app: AppHandle) -> Result<(), String> {
-    orb_snap(&app)
-}
-
-#[tauri::command]
-pub fn orb_peek_window(app: AppHandle) -> Result<(), String> {
-    orb_peek(&app)
-}
-
-#[tauri::command]
-pub fn orb_expand_window(app: AppHandle) -> Result<(), String> {
-    orb_expand(&app)
 }
 
 /// Clamp the main window to the monitor using the *front end's* measurement.

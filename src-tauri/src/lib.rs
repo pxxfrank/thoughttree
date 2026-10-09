@@ -11,7 +11,6 @@ use crate::models::Snapshot;
 use std::path::Path;
 use std::sync::Mutex;
 use tauri::{Manager, WindowEvent};
-use windows::OrbState;
 
 /// The database handle.
 ///
@@ -118,14 +117,11 @@ pub fn run() {
                 Ok(())
             });
             app.manage(db);
-            app.manage(OrbState::default());
             app.manage(context::ContextSlot::default());
 
-            // All three windows are created here, in order, rather than in the
-            // config: config windows are built before this hook runs, and the
-            // orb (created first) never composited when the others were built
-            // later by Tauri.
-            windows::create_orb_window(app)?;
+            // Both windows are created here, in order, rather than in the
+            // config: config windows are built before this hook runs, which is
+            // too early for the database to be managed.
             windows::create_main_window(app)?;
             windows::create_capture_window(app)?;
 
@@ -133,7 +129,6 @@ pub fn run() {
             if let Err(err) = windows::register_shortcut(&handle, &accel) {
                 eprintln!("[thoughttree] could not register shortcut '{accel}': {err}");
             }
-            windows::restore_orb(&handle);
             windows::show_main(&handle);
             windows::watch_main_window(handle.clone());
             context::start(&handle);
@@ -145,7 +140,7 @@ pub fn run() {
         .on_window_event(|window, event| {
             match event {
                 // Closing the main or capture window must not kill the app: the
-                // orb and the global shortcut keep working in the background.
+                // tray and the global shortcut keep working in the background.
                 WindowEvent::CloseRequested { api, .. } => {
                     if window.label() == "main" || window.label() == "capture" {
                         api.prevent_close();
@@ -172,9 +167,6 @@ pub fn run() {
             windows::show_main_window,
             windows::hide_main_window,
             windows::quit_app,
-            windows::orb_snap_window,
-            windows::orb_peek_window,
-            windows::orb_expand_window,
             windows::set_app_theme,
             windows::fit_main_to_screen,
             windows::capture_source_context,

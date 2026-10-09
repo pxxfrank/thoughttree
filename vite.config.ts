@@ -31,7 +31,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: r('./index.html'),
-        orb: r('./orb.html'),
         capture: r('./capture.html'),
       },
     },

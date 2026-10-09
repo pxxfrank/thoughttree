@@ -353,7 +353,7 @@ describe('reliability', () => {
       upsert_nodes: [
         {
           id: 'remote-1',
-          text: 'captured from the orb',
+          text: 'captured from another window',
           created_at: 1,
           updated_at: 1,
           priority: 'normal',
@@ -375,7 +375,7 @@ describe('reliability', () => {
     }
     persistence.broadcast(remote)
     expect(store.getState().nodes['remote-1']).toBeDefined()
-    expect(store.inbox().map((n) => n.text)).toEqual(['captured from the orb'])
+    expect(store.inbox().map((n) => n.text)).toEqual(['captured from another window'])
     // a remote change must not pollute the local undo history
     expect(store.getState().undoLabelKey).toBeNull()
   })

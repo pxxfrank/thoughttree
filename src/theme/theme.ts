@@ -9,8 +9,8 @@ export const THEMES: { value: Theme; labelKey: string }[] = [
 
 /**
  * All Tauri windows share an origin, so localStorage is shared between them.
- * That is how the orb — which has no store of its own — picks up the theme the
- * main window is using.
+ * That is how the quick-capture window — which has no store of its own — picks
+ * up the theme the main window is using.
  */
 const STORAGE_KEY = 'thoughttree.theme'
 
@@ -32,7 +32,7 @@ export function applyTheme(resolved: ResolvedTheme): void {
   }
 }
 
-/** Used by the orb and the quick-capture window, which have no store. */
+/** Used by the quick-capture window, which has no store of its own. */
 export function applyStoredTheme(): ResolvedTheme {
   let stored: ResolvedTheme | null = null
   try {

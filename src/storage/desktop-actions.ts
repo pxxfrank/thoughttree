@@ -21,9 +21,6 @@ export const hideCaptureWindow = (): Promise<unknown> => shell('hide_capture_win
 export const showMainWindow = (): Promise<unknown> => shell('show_main_window')
 export const hideMainWindow = (): Promise<unknown> => shell('hide_main_window')
 export const quitApp = (): Promise<unknown> => shell('quit_app')
-export const snapOrbWindow = (): Promise<unknown> => shell('orb_snap_window')
-export const peekOrbWindow = (): Promise<unknown> => shell('orb_peek_window')
-export const expandOrbWindow = (): Promise<unknown> => shell('orb_expand_window')
 export const setAppTheme = (theme: string): Promise<unknown> => shell('set_app_theme', { theme })
 export const fitMainToScreen = (width: number, height: number): Promise<unknown> =>
   shell('fit_main_to_screen', { width, height })

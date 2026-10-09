@@ -3,7 +3,7 @@
 **ThoughtTree** — a local-first Thinking Tracker.
 *Capture freely. Organize deliberately. Focus relentlessly.*
 
-Last updated: 2026-09-29
+Last updated: 2026-10-09
 
 ---
 
@@ -41,14 +41,13 @@ src/                        React front end (no framework beyond React)
   components/               UI (App, Header, TreePanel, InboxPanel,
                             FocusPanel, DetailPanel, CaptureBar,
                             WhyHerePopover, Toast, ShortcutHelp, dnd)
-  orb/                      floating orb window
   capture/                  quick capture window
   hooks/useKeyboard.ts      in-app keyboard workflow
 
 src-tauri/                  Rust shell
   db.rs                     schema, migrations, the single write path
   commands.rs               db_load / db_apply / settings / export
-  windows.rs                orb geometry, capture window, shortcut, watchdog
+  windows.rs                the main and capture windows, shortcut, watchdog
   tray.rs                   tray icon
   platform.rs               the few Windows-specific window fixes
   models.rs                 Node / Edge / Changes (mirrors the TS types)
@@ -77,8 +76,8 @@ function in `domain/mutations.ts`. The store applies `forward` to memory
 immediately (optimistic), pushes the mutation onto the undo stack, and hands
 `forward` to `db_apply`, which writes it in one SQLite transaction. On failure
 the store applies `backward` and raises an error toast. Successful writes are
-broadcast to the other windows so the orb, the capture window and the main
-window never disagree.
+broadcast to the other windows so the capture window and the main window never
+disagree.
 
 ---
 
@@ -91,11 +90,10 @@ window never disagree.
 - Inbox and tree, both persisted.
 
 **Phase 2 — capture**
-- Floating orb: 64×64 circle, always on top, draggable, snaps to the nearest
-  screen edge, remembers its position, slides mostly off-screen when idle and
-  returns on hover, right-click opens the main window.
-- Global shortcut quick capture (`Alt+Space` by default, rebindable in the UI,
-  empty disables it). A second press while it is focused hides it again.
+- ~~Floating orb~~: **removed in D037.** Capture is reached through the global
+  shortcut, the in-app `Ctrl+Shift+C` bar, or the tray's *Quick capture* item.
+- Global shortcut quick capture (`Ctrl+Shift+Space` by default, rebindable in the
+  UI, empty disables it). A second press while it is focused hides it again.
 - Quick capture window: one input, `Enter` saves, `Esc` cancels, it hides itself
   when it loses focus with nothing typed.
 - In-app capture bar with `Ctrl+Shift+C`.
@@ -201,29 +199,19 @@ Nothing is half-finished. The P1 list in `TODO.md` is the queue.
    intermittently and with no accompanying window event. `watch_main_window`
    re-asserts it for the first 20 seconds after launch, which resolves it in
    practice. Root cause not identified; it does not reproduce on demand.
-2. **Undo is per-window and in memory.** A capture made from the orb cannot be
-   undone from the main window, and nothing is undoable after a restart.
+2. **Undo is per-window and in memory.** A capture made from the quick-capture
+   window cannot be undone from the main window, and nothing is undoable after a
+   restart.
 3. **No tree virtualisation.** Rendering cost grows linearly with visible rows.
 4. **Drag does not auto-scroll** when a drop target is off-screen.
-6. The orb's idle "peek" and the freeform positions are only verified on a single
-   monitor.
-7. **The orb is created before the database is managed** (it has to be, so the
-   app always has a window). This is safe only because the orb's page never calls
-   a database command; keep it that way, or move it into `setup` too.
-8. **The bottom capture bar may still sit off the bottom edge.** It is confirmed
+5. **The bottom capture bar may still sit off the bottom edge.** It is confirmed
    to render (a temporary red background proved it) and it now has a distinct
    colour, but on this 150%-scaled display the main window's real painted extent
    is larger than `outer_size()` reports, so the size clamp in `fit_main_window`
    cannot be trusted to bring it on screen. Users on such a display should use
    `Alt+Space` (the floating capture window) instead. Fixing this properly needs
    the window measured in the same coordinate space the layout uses.
-9. **The orb's appearance is unverified in this environment.** Its window is
-   present, visible, topmost and correctly sized, but its pixels never appear in
-   a screen capture — even with an opaque magenta background, and even with a
-   plain-HTML colour block on the page. That points at layered-window
-   compositing not reaching a BitBlt in a remote session rather than at the app.
-   It did render visibly in one earlier session. Verify on a normal desktop.
-10. **Automated UI-driving is unreliable in this environment.** Synthesised
+6. **Automated UI-driving is unreliable in this environment.** Synthesised
    keystrokes are mangled by the active IME and absolute click coordinates
    disagree with `GetClientRect` (this shell is DPI-unaware, the app is
    per-monitor aware). Flows were therefore verified with a mix of real input,
@@ -289,10 +277,10 @@ See `DECISIONS.md` for the full log with reasoning. The load-bearing ones:
 | --- | --- |
 | 1. Starts on Windows | `pnpm app:dev`, or `pnpm app:build` |
 | 2. Local persistence | `%APPDATA%\app.thoughttree.desktop\thoughttree.db` |
-| 3. The orb runs | 64×64 circle, always on top, snaps to the screen edge |
-| 4. Orb → Quick Capture | click the orb |
+| 3. The orb runs | *removed in D037 — no always-visible launcher* |
+| 4. Orb → Quick Capture | *removed in D037 — use the shortcut or the tray* |
 | 5. Global shortcut → Quick Capture | `Ctrl+Shift+Space` from any app |
-| 6. Capture lands in the Inbox | bottom capture bar or the orb |
+| 6. Capture lands in the Inbox | bottom capture bar, the shortcut, or the tray |
 | 7. Inbox → Tree | drag an item onto a tree row |
 | 8. Multi-level tree | `Tab` to nest; keep going |
 | 9. Re-organise by dragging | drag a row: before / after / inside |

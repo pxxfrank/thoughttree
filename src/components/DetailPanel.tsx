@@ -101,6 +101,7 @@ export function DetailPanel() {
     (child) => child.status !== 'archived',
   )
   const openChildren = children.filter((child) => child.status !== 'done')
+  const hasLinks = links.outgoing.length > 0 || links.incoming.length > 0
 
   return (
     <section className="panel">
@@ -206,10 +207,9 @@ export function DetailPanel() {
           )}
         </Field>
 
-        <Field label={t('detail.relations')}>
-          {links.outgoing.length === 0 && links.incoming.length === 0 ? (
-            <div className="hint">{t('link.none')}</div>
-          ) : (
+        <div className="field">
+          {hasLinks && <div className="field-label">{t('detail.relations')}</div>}
+          {hasLinks && (
             <div className="link-groups">
               {LINK_RELATION_TYPES.map((type) => {
                 const out = links.outgoing.filter((link) => link.relation_type === type)
@@ -231,10 +231,14 @@ export function DetailPanel() {
               })}
             </div>
           )}
-          <button className="btn" style={{ marginTop: 6 }} onClick={() => store.startLink(node.id)}>
+          <button
+            className="btn"
+            style={{ marginTop: hasLinks ? 6 : 0 }}
+            onClick={() => store.startLink(node.id)}
+          >
             {t('link.add')}
           </button>
-        </Field>
+        </div>
 
         <Field label={t('field.notes')}>
           <AutoText

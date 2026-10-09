@@ -936,7 +936,7 @@ textarea {
   gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 780px;
+  max-width: 560px;
   pointer-events: auto;
   padding: 3px 4px 3px 13px;
   border-radius: 12px;
@@ -961,19 +961,6 @@ textarea {
 }
 .capture-composer input::placeholder {
   color: var(--muted);
-}
-
-.capture-hint {
-  flex: none;
-  font-size: 11px;
-  color: var(--faint);
-  white-space: nowrap;
-}
-/* The hint is the first thing to go when there is no room for it. */
-@media (max-width: 1000px) {
-  .capture-hint {
-    display: none;
-  }
 }
 
 /* ---------- popovers ---------- */

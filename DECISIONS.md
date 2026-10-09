@@ -747,4 +747,47 @@ the only signal left is the detail panel's focus button and Ctrl+Shift+F.
 
 **Date**: 2026-10-08
 
+---
+
+## D036 — Four things that were always on screen, and one word that meant two
+
+A pass over four pieces of permanent furniture rather than any new capability.
+
+**The capture box was wide because of a hint inside it.** The shortcut reminder
+(`Enter to save · Ctrl+Shift+Space from anywhere`) lived as a span inside the
+composer, and the composer's `max-width` had been grown to 780px to fit it — so
+the input was mostly empty space, and the box was the widest thing on the
+bottom edge for no functional reason. The reminder is now the input's `title`
+(hover, not pixels) and the composer is capped at 560px. The shortcut itself is
+still taught by the settings dialog; nothing was lost but the width.
+
+**「关系」 meant two things.** The parent relation — *why does this question sit
+under that one* — and the cross-branch link — *what is true between these two
+questions* — were both called 「关系」/「关联」 in the Chinese UI, and the two are
+the product's most distinct ideas. D034 already separated them structurally
+(`edges.kind`); this separates them in words. The parent relation is now
+**归属** (belonging), links stay **关联**. The English `detail.relations`
+heading moves from `Relations` to `Links` so the section matches the `link.*`
+vocabulary it actually contains; the English parent term stays "relationship".
+
+**Two blocks were rendered whether or not they had anything to say.** The
+Inbox's drag hint sat under the list permanently, including when the list was
+empty and there was nothing to drag; it now lives inside the empty state, under
+the empty message. The detail panel's 关联 field rendered "no cross-branch links
+yet" plus an add button for *every* unlinked question; the field (label and
+grouped links) now renders only when there is at least one link, and an unlinked
+question shows just the bordered **关联到另一个问题…** action.
+
+**Reason**: the app is a quiet place to think, and these four were the loudest
+parts of an otherwise calm surface — a mostly-empty box, a word that made two
+ideas look like one, and two empty-state paragraphs that never went away. None
+of them was a bug; all of them were noise the user had to read past.
+
+**Trade-off**: the global-shortcut reminder is now hidden behind a hover, so it
+is discovered later than before; and the add-link action stands alone, with no
+field label above it, for a question that has no links yet. Both were chosen
+deliberately — a narrower box and a plaque-free panel were the point.
+
+**Date**: 2026-10-09
+
 

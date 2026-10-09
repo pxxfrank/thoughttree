@@ -26,6 +26,7 @@ export function CaptureBar() {
           ref={inputRef}
           value={text}
           placeholder={t('capture.placeholder')}
+          title={t('capture.hint', { shortcut: state.shortcut || t('capture.noShortcut') })}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={(event) => {
             if (isComposing(event)) return
@@ -39,9 +40,6 @@ export function CaptureBar() {
           }}
           data-capture-bar
         />
-        <span className="capture-hint">
-          {t('capture.hint', { shortcut: state.shortcut || t('capture.noShortcut') })}
-        </span>
         <button className="btn primary" onClick={() => void submit()} disabled={!text.trim()}>
           {t('capture.button')}
         </button>

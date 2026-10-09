@@ -91,7 +91,12 @@ export function InboxPanel() {
 
       <div className="panel-body" onClick={() => store.selectInbox([])}>
         {items.length === 0 ? (
-          <div className="empty">{t('empty.inbox')}</div>
+          <div className="empty">
+            <div>{t('empty.inbox')}</div>
+            <div className="hint" style={{ marginTop: 8 }}>
+              {t('empty.inboxHint')}
+            </div>
+          </div>
         ) : (
           items.map((node, index) => (
             <div
@@ -156,9 +161,6 @@ export function InboxPanel() {
             </div>
           ))
         )}
-        <div className="hint" style={{ padding: '10px 10px 0' }}>
-          {t('empty.inboxHint')}
-        </div>
       </div>
     </section>
   )

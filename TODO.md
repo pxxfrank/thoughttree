@@ -64,6 +64,16 @@ _All P0 items are complete. See `PROJECT_STATE.md` for the verification list._
 - [x] Fixed: the rotating backup now checkpoints the WAL before copying, so a
   backup can no longer be missing the previous session.
 
+## Done — the quiet surface (D036)
+
+- [x] The capture box was 780px wide to fit the shortcut hint inside it; the
+  hint is now the input's tooltip, and the box is 560px.
+- [x] 「关系」 meant both the parent relation and the cross-branch link in
+  Chinese; the parent relation is now 「归属」, links stay 「关联」.
+- [x] The Inbox's drag hint was permanent; it now shows only in the empty state.
+- [x] The detail panel's 关联 block was rendered for every question, even with
+  no links; it now appears only when there is one, leaving just the add action.
+
 ## Explicitly out of scope (see §17 of the brief)
 
 Accounts, cloud sync, collaboration, AI summarisation/classification, RAG,
